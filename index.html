@@ -153,19 +153,28 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .of-row{display:grid;grid-template-columns:90px 120px 1fr 1fr 110px 34px;gap:6px;align-items:end;padding-bottom:8px;border-bottom:1px solid var(--line)}
 .of-row .f{font-size:11px}
 .of-row .out{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;padding-bottom:8px}
-.of-row .pair{display:flex;gap:4px;align-items:center}
+.of-row .res{grid-column:1 / -1;font-size:13px;font-variant-numeric:tabular-nums;display:flex;flex-wrap:wrap;gap:4px 14px}
+.of-row .res b{font-size:15px}
+.of-row .res .vat{color:var(--accent);font-weight:600}
+.of-sum{display:grid;grid-template-columns:1fr auto;gap:4px 16px;font-variant-numeric:tabular-nums;font-size:15px}
+.of-sum .g{font-weight:700;font-size:18px;border-top:1px solid var(--line);padding-top:6px}
+.of-sum .vat{color:var(--accent)}
+#o-vat[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .of-x{display:grid;grid-template-columns:1fr 130px 34px;gap:6px;align-items:end}
 .price-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px 8px}
 .price-grid label{font-size:12px}
 @media (max-width:640px){
-  .of-row{grid-template-columns:1fr 1fr 1fr}
-  .of-row .wide{grid-column:span 2}
+  .of-row{grid-template-columns:1fr 1fr}
+  .of-row .out{padding-bottom:12px}
+  .of-row .del{height:42px;width:100%}
   .of-x{grid-template-columns:1fr 110px 40px}
 }
 .of{padding:12mm 13mm;font-size:9.8pt;line-height:1.35;color:var(--ink)}
 .of-meta{margin-top:5mm;display:grid;grid-template-columns:1fr 1fr;gap:8mm}
 .of table{border-collapse:collapse;width:100%;margin-top:5mm}
-.of th,.of td{border:1px solid var(--ink);padding:1.2mm 1.8mm}
+.of th,.of td{border:1px solid var(--ink);padding:1.2mm 1.6mm}
+.of.vat table{font-size:.92em}
+.of th.v,.of td.v{background:#f6f6f6;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .of th{font-size:.76em;text-transform:uppercase;letter-spacing:.04em;background:#f1f1f1;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .of td.n{text-align:right;font-family:var(--mono);white-space:nowrap}
 .of td.c{text-align:center}
@@ -357,18 +366,24 @@ input[type=number]{font-variant-numeric:tabular-nums}
           <fieldset>
             <legend>Арматура</legend>
             <div id="of-rows" class="of-rows"></div>
-            <div class="row"><button class="btn small" type="button" id="of-add">+ Добави диаметър</button><span class="spacer" style="flex:1"></span><b>Тегло: <span id="of-wt">0</span> кг</b></div>
-            <span class="hint">Количеството е в килограми или в брой пръти × дължина. Теглото на пръта се смята по Ø² × 0,00617 кг/м.</span>
+            <div class="row"><button class="btn small" type="button" id="of-add">+ Добави диаметър</button></div>
+            <span class="hint">Въведете общата дължина в метри и теглото се смята веднага по масата на метър за диаметъра. Може и направо в кг или в брой пръти. Цената е в € за тон без ДДС.</span>
           </fieldset>
           <div class="sep"></div>
           <fieldset>
-            <legend>Услуги и отстъпка</legend>
-            <div id="of-extras" class="of-rows"></div>
-            <div class="row"><button class="btn small" type="button" id="of-add-extra">+ Добави услуга</button></div>
+            <legend>Доставка и услуги</legend>
             <div class="grid">
-              <label class="f">Отстъпка, %<input id="o-discount" type="number" min="0" max="100" step="0.5" data-o="discount"></label>
-              <label class="chk" style="align-self:end"><input type="checkbox" id="o-vat"> Начисли ДДС 20%</label>
+              <label class="f">Доставка, € без ДДС<input id="o-delivery" inputmode="decimal" data-o="delivery"></label>
+              <label class="f">Отстъпка от арматурата, %<input id="o-discount" type="number" min="0" max="100" step="0.5" data-o="discount"></label>
             </div>
+            <div id="of-extras" class="of-rows"></div>
+            <div class="row"><button class="btn small" type="button" id="of-add-extra">+ Добави друга услуга</button></div>
+          </fieldset>
+          <div class="sep"></div>
+          <fieldset>
+            <legend>Общо</legend>
+            <div class="of-sum" id="of-sum"></div>
+            <div class="row"><button class="btn" type="button" id="o-vat" aria-pressed="false">+ ДДС 20%</button><span class="hint" id="o-vat-hint"></span></div>
             <label class="f">Бележка към предложението<textarea id="o-note" data-o="note"></textarea></label>
           </fieldset>
           <div class="sep"></div>
@@ -769,44 +784,60 @@ input[type=number]{font-variant-numeric:tabular-nums}
 
 
   /* ---------- offer calculator ---------- */
-  var DIAMS=[6,8,10,12,14,16,18,20,22,25,28,32];
-  var SAMPLE_PRICES={6:980,8:950,10:920,12:900,14:900,16:900,18:900,20:900,22:910,25:910,28:920,32:920};
+  var DIAMS=[6,8,10,12,14,16,18,20,22,25,28,32,36,40];
+  /* nominal mass per metre, kg/m (EN 10080 / БДС) */
+  var KGM={6:0.222,8:0.395,10:0.617,12:0.888,14:1.21,16:1.58,18:2.0,20:2.47,22:2.98,25:3.85,28:4.83,32:6.31,36:7.99,40:9.87};
+  var SAMPLE_PRICES={6:980,8:950,10:920,12:900,14:900,16:900,18:900,20:900,22:910,25:910,28:920,32:920,36:930,40:930};
   if(!store.prices){ store.prices=Object.assign({},SAMPLE_PRICES); store.pricesSample=true; }
+  if(store.pricesSample){ DIAMS.forEach(function(d){ if(store.prices[d]==null) store.prices[d]=SAMPLE_PRICES[d]; }); }
   if(!store.settings.offerNo) store.settings.offerNo=1;
-  function kgm(d){ return num(d)*num(d)*0.00617; }
+  function kgm(d){ return KGM[d] || num(d)*num(d)*0.00617; }
   function money(n){ return (Math.round(n*100)/100).toLocaleString("bg-BG",{minimumFractionDigits:2,maximumFractionDigits:2})+" €"; }
+  function fmtW(n){ return n ? (Math.round(n*10)/10).toLocaleString("bg-BG",{maximumFractionDigits:1}) : "0"; }
   function offerNo(n){ return "ТП-"+String(n).padStart(6,"0"); }
+  function newRow(d,mode){ return {d:String(d||12),mode:mode||"m",m:"",kg:"",pcs:"",len:"12",price:""}; }
   function blankOffer(){ return {no:offerNo(store.settings.offerNo), date:todayISO(), valid:"7", client:"", contact:"", site:"",
-    rows:[{d:"12",mode:"kg",kg:"",pcs:"",len:"12",price:""}], extras:[{name:"Доставка",amount:""}], discount:"", vat:true, note:""}; }
+    rows:[newRow(12)], delivery:"", extras:[], discount:"", vat:false, note:""}; }
   function sampleOffer(){ var o=blankOffer(); o.sample=true; o.client="Иван Петров (пример)"; o.site="с. Лозен, къща";
-    o.rows=[{d:"10",mode:"pcs",kg:"",pcs:"60",len:"12",price:""},{d:"12",mode:"kg",kg:"1500",pcs:"",len:"12",price:""},{d:"8",mode:"kg",kg:"300",pcs:"",len:"",price:""}];
-    o.extras=[{name:"Доставка",amount:"120"},{name:"Рязане и огъване",amount:"80"}]; return o; }
+    var a=newRow(10); a.m="720"; var b=newRow(12); b.m="1500"; var c=newRow(8,"kg"); c.kg="300";
+    o.rows=[a,b,c]; o.delivery="120"; return o; }
   var offer = store.offer || sampleOffer();
   if(/^ОФ-/.test(offer.no)) offer.no=offer.no.replace(/^ОФ-/,"ТП-");
-  function rowWt(r){ return r.mode==="pcs" ? num(r.pcs)*num(r.len)*kgm(r.d) : num(r.kg); }
+  (function migrateOffer(o){
+    o.extras=o.extras||[];
+    if(o.delivery==null){ var di=o.extras.findIndex(function(x){ return String(x.name).trim().toLowerCase()==="доставка"; }); o.delivery = di>=0 ? o.extras.splice(di,1)[0].amount : ""; }
+    o.rows.forEach(function(r){ if(r.m==null) r.m=""; if(!r.mode) r.mode="m"; });
+  })(offer);
+  function rowWt(r){ return r.mode==="pcs" ? num(r.pcs)*num(r.len)*kgm(r.d) : r.mode==="kg" ? num(r.kg) : num(r.m)*kgm(r.d); }
+  function rowLen(r){ return r.mode==="pcs" ? num(r.pcs)*num(r.len) : r.mode==="m" ? num(r.m) : 0; }
   function rowPrice(r){ return String(r.price).trim()!=="" ? num(r.price) : num(store.prices[r.d]); }
+  function rowSum(r){ return rowWt(r)/1000*rowPrice(r); }
   function calc(){
     var wt=0, goods=0;
-    offer.rows.forEach(function(r){ var w=rowWt(r); wt+=w; goods+=w/1000*rowPrice(r); });
-    var extras=offer.extras.reduce(function(a,x){ return a+num(x.amount); },0);
-    var sub=goods+extras, disc=goods*num(offer.discount)/100, net=sub-disc, vat=offer.vat?net*0.2:0;
-    return {wt:wt,goods:goods,extras:extras,disc:disc,net:net,vat:vat,total:net+vat};
+    offer.rows.forEach(function(r){ wt+=rowWt(r); goods+=rowSum(r); });
+    var extras=offer.extras.reduce(function(a,x){ return a+num(x.amount); },0), delivery=num(offer.delivery);
+    var disc=goods*num(offer.discount)/100, net=goods-disc+delivery+extras, vat=net*0.2;
+    return {wt:wt,goods:goods,extras:extras,delivery:delivery,disc:disc,net:net,vat:vat,total:net+vat};
   }
   function saveOffer(){ store.offer=offer; clearTimeout(saveOffer.t); saveOffer.t=setTimeout(persist,400); }
   function renderOfferRows(){
     var dOpts=function(sel){ return DIAMS.map(function(d){ return "<option value=\""+d+"\""+(String(d)===String(sel)?" selected":"")+">Ø "+d+"</option>"; }).join(""); };
+    var mOpt=function(v,t,cur){ return "<option value=\""+v+"\""+(cur===v?" selected":"")+">"+t+"</option>"; };
     $("of-rows").innerHTML = offer.rows.map(function(r,i){
       return "<div class=\"of-row\" data-i=\""+i+"\">"+
         "<label class=\"f\">Диаметър<select data-r=\"d\">"+dOpts(r.d)+"</select></label>"+
-        "<label class=\"f\">Количество в<select data-r=\"mode\"><option value=\"kg\""+(r.mode==="kg"?" selected":"")+">кг</option><option value=\"pcs\""+(r.mode==="pcs"?" selected":"")+">бр. пръти</option></select></label>"+
+        "<label class=\"f\">Въвеждам<select data-r=\"mode\">"+mOpt("m","метри",r.mode)+mOpt("kg","кг",r.mode)+mOpt("pcs","бр. пръти",r.mode)+"</select></label>"+
         (r.mode==="pcs"
           ? "<label class=\"f\">Брой<input data-r=\"pcs\" inputmode=\"numeric\" value=\""+esc(r.pcs)+"\"></label><label class=\"f\">Дължина, м<input data-r=\"len\" inputmode=\"decimal\" value=\""+esc(r.len)+"\"></label>"
-          : "<label class=\"f wide\">Килограми<input data-r=\"kg\" inputmode=\"decimal\" value=\""+esc(r.kg)+"\"></label><span class=\"out\" data-out=\"kgm\"></span>")+
-        "<label class=\"f\">Цена €/т<input data-r=\"price\" inputmode=\"decimal\" value=\""+esc(r.price)+"\" placeholder=\""+esc(store.prices[r.d]||"")+"\"></label>"+
-        "<button type=\"button\" class=\"del\" data-rdel=\""+i+"\" aria-label=\"Изтрий\">×</button></div>";
+          : r.mode==="kg"
+          ? "<label class=\"f wide\">Килограми<input data-r=\"kg\" inputmode=\"decimal\" value=\""+esc(r.kg)+"\"></label><span class=\"out\" data-out=\"kgm\"></span>"
+          : "<label class=\"f wide\">Обща дължина, м<input data-r=\"m\" inputmode=\"decimal\" value=\""+esc(r.m)+"\"></label><span class=\"out\" data-out=\"kgm\"></span>")+
+        "<label class=\"f\">Цена €/т без ДДС<input data-r=\"price\" inputmode=\"decimal\" value=\""+esc(r.price)+"\" placeholder=\""+esc(store.prices[r.d]||"")+"\"></label>"+
+        "<button type=\"button\" class=\"del\" data-rdel=\""+i+"\" aria-label=\"Изтрий\">×</button>"+
+        "<div class=\"res\" data-res></div></div>";
     }).join("");
     $("of-extras").innerHTML = offer.extras.map(function(x,i){
-      return "<div class=\"of-x\" data-x=\""+i+"\"><label class=\"f\">Услуга<input data-xf=\"name\" value=\""+esc(x.name)+"\"></label><label class=\"f\">Сума, €<input data-xf=\"amount\" inputmode=\"decimal\" value=\""+esc(x.amount)+"\"></label><button type=\"button\" class=\"del\" data-xdel=\""+i+"\" aria-label=\"Изтрий\">×</button></div>";
+      return "<div class=\"of-x\" data-x=\""+i+"\"><label class=\"f\">Услуга<input data-xf=\"name\" value=\""+esc(x.name)+"\"></label><label class=\"f\">Сума, € без ДДС<input data-xf=\"amount\" inputmode=\"decimal\" value=\""+esc(x.amount)+"\"></label><button type=\"button\" class=\"del\" data-xdel=\""+i+"\" aria-label=\"Изтрий\">×</button></div>";
     }).join("");
   }
   function renderPrices(){
@@ -814,25 +845,28 @@ input[type=number]{font-variant-numeric:tabular-nums}
     $("of-prices-chip").hidden = !store.pricesSample;
   }
   function offerHTML(){
-    var s=store.settings, c=calc(), until="";
+    var s=store.settings, c=calc(), until="", V=!!offer.vat;
     if(offer.date && num(offer.valid)){ var dt=new Date(offer.date+"T12:00:00"); dt.setDate(dt.getDate()+num(offer.valid)); until=pad(dt.getDate())+"."+pad(dt.getMonth()+1)+"."+dt.getFullYear()+" г."; }
-    var rows=offer.rows.map(function(r,i){ var w=rowWt(r), p=rowPrice(r);
-      var q = r.mode==="pcs" ? esc(r.pcs||0)+" бр × "+esc(fmtNum(r.len||0))+" м" : fmtKg(num(r.kg))+" кг";
-      return "<tr><td class=\"c\">"+(i+1)+"</td><td>Арматура B500B</td><td class=\"c\">"+esc(r.d)+"</td><td class=\"n\">"+q+"</td><td class=\"n\">"+fmtKg(w)+"</td><td class=\"n\">"+money(p)+"</td><td class=\"n\">"+money(w/1000*p)+"</td></tr>"; }).join("");
-    var n=offer.rows.length;
-    offer.extras.forEach(function(x){ if(String(x.name).trim()||num(x.amount)){ n++; rows+="<tr><td class=\"c\">"+n+"</td><td colspan=\"5\">"+esc(x.name)+"</td><td class=\"n\">"+money(num(x.amount))+"</td></tr>"; } });
-    return "<div class=\"of\">"+
+    var rows=offer.rows.map(function(r,i){ var w=rowWt(r), p=rowPrice(r), sum=rowSum(r), L=rowLen(r);
+      var q = r.mode==="pcs" ? esc(r.pcs||0)+" бр × "+esc(fmtNum(r.len||0))+" м" : (L ? fmtW(L)+" м" : "—");
+      return "<tr><td class=\"c\">"+(i+1)+"</td><td>Арматура B500B Ø"+esc(r.d)+"</td><td class=\"n\">"+q+"</td><td class=\"n\">"+fmtW(w)+"</td><td class=\"n\">"+money(p)+"</td>"+(V?"<td class=\"n v\">"+money(p*1.2)+"</td>":"")+"<td class=\"n\">"+money(sum)+"</td>"+(V?"<td class=\"n v\">"+money(sum*1.2)+"</td>":"")+"</tr>"; }).join("");
+    var n=offer.rows.length, span=V?5:4;
+    function svc(name,amount){ n++; rows+="<tr><td class=\"c\">"+n+"</td><td colspan=\""+span+"\">"+esc(name)+"</td><td class=\"n\">"+money(amount)+"</td>"+(V?"<td class=\"n v\">"+money(amount*1.2)+"</td>":"")+"</tr>"; }
+    if(c.delivery) svc("Доставка"+(offer.site?" до "+offer.site:""), c.delivery);
+    offer.extras.forEach(function(x){ if(String(x.name).trim()||num(x.amount)) svc(x.name, num(x.amount)); });
+    return "<div class=\"of"+(V?" vat":"")+"\">"+
       "<div class=\"rc-head\"><div class=\"rc-co\"><img class=\"rc-logo\" src=\""+logoSrc()+"\" alt=\"\"><div><b>"+esc(s.company)+"</b>"+(s.eik?"<div>ЕИК "+esc(s.eik)+"</div>":"")+"<div>"+esc(s.address)+"</div>"+(s.phone?"<div>тел. "+esc(s.phone)+"</div>":"")+"</div></div>"+
       "<div class=\"rc-doc\"><div class=\"rc-title\">Търговско предложение</div><div class=\"rc-kv\"><span>№</span><span>"+esc(offer.no)+"</span><span>Дата</span><span>"+esc(fmtDate(offer.date))+"</span>"+(until?"<span>Валидна до</span><span>"+until+"</span>":"")+"</div></div></div>"+
       "<div class=\"of-meta\"><div><div class=\"rc-lbl\">Клиент</div><b>"+esc(offer.client)+"</b><div>"+esc(offer.contact)+"</div></div><div><div class=\"rc-lbl\">Обект / доставка до</div><b>"+esc(offer.site)+"</b></div></div>"+
-      "<table><thead><tr><th style=\"width:7mm\">№</th><th>Артикул</th><th>Ø, мм</th><th>Количество</th><th>Тегло, кг</th><th>Цена, €/т</th><th>Сума, €</th></tr></thead><tbody>"+rows+"</tbody></table>"+
-      "<div class=\"of-tot\"><span>Общо тегло</span><span>"+fmtKg(c.wt)+" кг</span>"+
+      "<table><thead><tr><th style=\"width:7mm\">№</th><th>Артикул</th><th>Дължина</th><th>Тегло, кг</th><th>Цена €/т<br>без ДДС</th>"+(V?"<th class=\"v\">Цена €/т<br>с ДДС</th>":"")+"<th>Сума<br>без ДДС</th>"+(V?"<th class=\"v\">Сума<br>с ДДС</th>":"")+"</tr></thead><tbody>"+rows+"</tbody></table>"+
+      "<div class=\"of-tot\"><span>Общо тегло</span><span>"+fmtW(c.wt)+" кг</span>"+
         (c.disc?"<span>Отстъпка "+esc(fmtNum(offer.discount))+"% (арматура)</span><span>−"+money(c.disc)+"</span>":"")+
-        "<span>Сума без ДДС</span><span>"+money(c.net)+"</span>"+
-        (offer.vat?"<span>ДДС 20%</span><span>"+money(c.vat)+"</span>":"")+
-        "<span class=\"grand\">"+(offer.vat?"Общо с ДДС":"Общо")+"</span><span class=\"grand\">"+money(c.total)+"</span></div>"+
+        (V ? "<span>Сума без ДДС</span><span>"+money(c.net)+"</span><span>ДДС 20%</span><span>"+money(c.vat)+"</span><span class=\"grand\">Общо с ДДС</span><span class=\"grand\">"+money(c.total)+"</span>"
+           : "<span class=\"grand\">Общо без ДДС</span><span class=\"grand\">"+money(c.net)+"</span>")+
+      "</div>"+
+      (V?"":"<div class=\"of-note\" style=\"text-align:right;color:var(--ink-soft)\">Всички цени са без ДДС.</div>")+
       (offer.note?"<div class=\"of-note\"><b>Бележка:</b> "+esc(offer.note)+"</div>":"")+
-      "<div class=\"of-note hint\" style=\"color:var(--ink-soft)\">Теглото при брой пръти е теоретично. Окончателното тегло се определя при товарене.</div>"+
+      "<div class=\"of-note\" style=\"color:var(--ink-soft)\">Теглото е теоретично, изчислено по дължина. Окончателното тегло се определя при товарене.</div>"+
       "<div class=\"of-sign\"><div>Изготвил</div><div>Клиент</div></div>"+
     "</div>";
   }
@@ -840,13 +874,26 @@ input[type=number]{font-variant-numeric:tabular-nums}
   function fitOffer(){ var w=ofWrap.clientWidth, sw=ofSheet.offsetWidth; if(!sw) return; var k=Math.min(1,w/sw); ofSheet.style.transform="scale("+k+")"; ofWrap.style.height=(ofSheet.offsetHeight*k)+"px"; }
   if(window.ResizeObserver){ new ResizeObserver(fitOffer).observe(ofWrap); }
   function renderOfferPreview(){
-    ofSheet.innerHTML=offerHTML(); var c=calc(); $("of-wt").textContent=fmtKg(c.wt)||"0";
-    document.querySelectorAll("#of-rows .of-row").forEach(function(el){ var r=offer.rows[+el.dataset.i], o=el.querySelector("[data-out]"); if(o) o.textContent=kgm(r.d).toFixed(3).replace(".",",")+" кг/м"; });
+    ofSheet.innerHTML=offerHTML(); var c=calc(), V=!!offer.vat;
+    document.querySelectorAll("#of-rows .of-row").forEach(function(el){
+      var r=offer.rows[+el.dataset.i], o=el.querySelector("[data-out]"), w=rowWt(r), sum=rowSum(r);
+      if(o) o.textContent=String(kgm(r.d)).replace(".",",")+" кг/м";
+      el.querySelector("[data-res]").innerHTML = "<span>= <b>"+fmtW(w)+" кг</b></span>"+(rowLen(r)&&r.mode==="pcs"?"<span>"+fmtW(rowLen(r))+" м</span>":"")+"<span>"+money(sum)+" без ДДС</span>"+(V?"<span class=\"vat\">"+money(sum*1.2)+" с ДДС</span>":"");
+    });
+    $("of-sum").innerHTML = "<span>Общо тегло</span><span>"+fmtW(c.wt)+" кг</span>"+
+      "<span>Арматура без ДДС</span><span>"+money(c.goods-c.disc)+"</span>"+
+      (c.delivery?"<span>Доставка без ДДС</span><span>"+money(c.delivery)+"</span>":"")+
+      (c.extras?"<span>Други услуги без ДДС</span><span>"+money(c.extras)+"</span>":"")+
+      "<span class=\"g\">Общо без ДДС</span><span class=\"g\">"+money(c.net)+"</span>"+
+      (V?"<span class=\"vat\">ДДС 20%</span><span class=\"vat\">"+money(c.vat)+"</span><span class=\"g vat\">Общо с ДДС</span><span class=\"g vat\">"+money(c.total)+"</span>":"");
+    $("o-vat").setAttribute("aria-pressed", V?"true":"false");
+    $("o-vat").textContent = V ? "✓ ДДС 20% е показан" : "+ ДДС 20%";
+    $("o-vat-hint").textContent = V ? "В предложението има отделни колони с ДДС. Натиснете пак, за да ги скриете." : "Предложението е само с цени без ДДС.";
     fitOffer();
   }
   function renderOffer(){
     document.querySelectorAll("#of-form [data-o]").forEach(function(el){ el.value = offer[el.dataset.o]==null?"":offer[el.dataset.o]; });
-    $("o-vat").checked=!!offer.vat; renderOfferRows(); renderPrices(); renderOfferPreview();
+    renderOfferRows(); renderPrices(); renderOfferPreview();
   }
   function offerChanged(){ offer.sample=false; saveOffer(); renderOfferPreview(); }
   $("of-form").addEventListener("submit",function(e){ e.preventDefault(); });
@@ -857,14 +904,14 @@ input[type=number]{font-variant-numeric:tabular-nums}
     else if(el.dataset.xf && (row=el.closest("[data-x]"))){ offer.extras[+row.dataset.x][el.dataset.xf]=el.value; offerChanged(); }
     else if(el.dataset.p){ store.prices[el.dataset.p]=el.value; store.pricesSample=false; $("of-prices-chip").hidden=true; persist(); renderOfferRows(); renderOfferPreview(); }
   });
-  $("of-form").addEventListener("change",function(e){ if(e.target.id==="o-vat"){ offer.vat=e.target.checked; offerChanged(); } else if(e.target.dataset.r==="d"||e.target.dataset.r==="mode"){ /* handled on input */ } });
+  $("o-vat").addEventListener("click",function(){ offer.vat=!offer.vat; offerChanged(); });
   $("of-form").addEventListener("click",function(e){
     var b=e.target.closest("[data-rdel],[data-xdel]"); if(!b) return;
-    if(b.dataset.rdel!=null){ offer.rows.splice(+b.dataset.rdel,1); if(!offer.rows.length) offer.rows.push({d:"12",mode:"kg",kg:"",pcs:"",len:"12",price:""}); }
+    if(b.dataset.rdel!=null){ offer.rows.splice(+b.dataset.rdel,1); if(!offer.rows.length) offer.rows.push(newRow(12)); }
     else { offer.extras.splice(+b.dataset.xdel,1); }
     renderOfferRows(); offerChanged();
   });
-  $("of-add").addEventListener("click",function(){ var last=offer.rows[offer.rows.length-1]||{}; var i=DIAMS.indexOf(+last.d); offer.rows.push({d:String(DIAMS[Math.min(DIAMS.length-1,i+1)]||12),mode:last.mode||"kg",kg:"",pcs:"",len:last.len||"12",price:""}); renderOfferRows(); offerChanged(); });
+  $("of-add").addEventListener("click",function(){ var last=offer.rows[offer.rows.length-1]||{}; var i=DIAMS.indexOf(+last.d); offer.rows.push(newRow(DIAMS[Math.min(DIAMS.length-1,i+1)]||12,last.mode)); renderOfferRows(); offerChanged(); var ins=document.querySelectorAll("#of-rows .of-row:last-child input"); if(ins[0]) ins[0].focus(); });
   $("of-add-extra").addEventListener("click",function(){ offer.extras.push({name:"",amount:""}); renderOfferRows(); offerChanged(); var ins=document.querySelectorAll("#of-extras [data-xf=name]"); ins[ins.length-1].focus(); });
   function ofFlash(t){ $("of-status").textContent=t; clearTimeout(ofFlash.t); ofFlash.t=setTimeout(function(){ $("of-status").textContent=""; },3000); }
   $("of-new").addEventListener("click",function(){ if(!offer.sample && offer.no===offerNo(store.settings.offerNo)) store.settings.offerNo++; offer=blankOffer(); saveOffer(); persist(); renderOffer(); ofFlash("Ново ТП "+offer.no); });
