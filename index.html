@@ -241,7 +241,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
   </div>
   <nav class="tabs" role="tablist">
     <button class="tab" role="tab" id="tab-new" data-view="new" aria-selected="true">Бележка</button>
-    <button class="tab" role="tab" id="tab-offer" data-view="offer" aria-selected="false">ТП калкулатор</button>
+    <button class="tab" role="tab" id="tab-offer" data-view="offer" aria-selected="false">Оферта</button>
     <button class="tab" role="tab" id="tab-archive" data-view="archive" aria-selected="false">Архив</button>
     <button class="tab" role="tab" id="tab-settings" data-view="settings" aria-selected="false">Настройки</button>
   </nav>
@@ -348,7 +348,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
     <div class="toolbar">
       <button class="btn primary" id="of-share" type="button">Изпрати PDF</button>
       <button class="btn" id="of-print" type="button">Печат</button>
-      <button class="btn" id="of-new" type="button">Ново ТП</button>
+      <button class="btn" id="of-new" type="button">Нова оферта</button>
       <button class="btn" id="of-to-note" type="button">Направи бележка</button>
       <span class="spacer"></span>
       <span class="status" id="of-status"></span>
@@ -357,7 +357,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
       <div class="panel form-col">
         <form class="form" id="of-form" autocomplete="off">
           <fieldset>
-            <legend>Търговско предложение</legend>
+            <legend>Оферта</legend>
             <div class="grid">
               <label class="f">Номер<input id="o-no" data-o="no"></label>
               <label class="f">Дата<input id="o-date" type="date" data-o="date"></label>
@@ -397,13 +397,13 @@ input[type=number]{font-variant-numeric:tabular-nums}
             <legend>Общо</legend>
             <div class="of-sum" id="of-sum"></div>
             <div class="row"><button class="btn" type="button" id="o-vat" aria-pressed="false">+ ДДС 20%</button><span class="hint" id="o-vat-hint"></span></div>
-            <label class="f">Бележка към предложението<textarea id="o-note" data-o="note"></textarea></label>
+            <label class="f">Бележка към офертата<textarea id="o-note" data-o="note"></textarea></label>
           </fieldset>
           <div class="sep"></div>
           <fieldset>
             <legend>Ценоразпис, € за тон без ДДС <span id="of-prices-chip" class="chip" hidden>примерни цени</span></legend>
             <div class="price-grid" id="of-prices"></div>
-            <span class="hint">Цените се пазят и се ползват за всяко ново ТП. В реда цената може да се смени ръчно.</span>
+            <span class="hint">Цените се пазят и се ползват за всяка нова оферта. В реда цената може да се смени ръчно.</span>
           </fieldset>
           <div class="sep"></div>
           <fieldset>
@@ -813,7 +813,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
   function kgm(d){ return KGM[d] || num(d)*num(d)*0.00617; }
   function money(n){ return (Math.round(n*100)/100).toLocaleString("bg-BG",{minimumFractionDigits:2,maximumFractionDigits:2})+" €"; }
   function fmtW(n){ return n ? (Math.round(n*10)/10).toLocaleString("bg-BG",{maximumFractionDigits:1}) : "0"; }
-  function offerNo(n){ return "ТП-"+String(n).padStart(6,"0"); }
+  function offerNo(n){ return "ОФ-"+String(n).padStart(6,"0"); }
   function newRow(d,mode){ return {d:String(d||12),mode:mode||"m",m:"",kg:"",pcs:"",len:"12",price:""}; }
   /* weight of one 12 m bar, kg: table mass x 12, except the two values taken from the yard's own order sheet */
   if(!store.barW){ store.barW={}; DIAMS.forEach(function(d){ store.barW[d]=Math.round(KGM[d]*12*100)/100; }); store.barW[10]=7.5; store.barW[14]=14.7; store.barWSample=true; }
@@ -845,7 +845,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
     var a=newRow(10,"pcs"); a.pcs="32"; a.len="5.95"; var b=newRow(10,"pcs"); b.pcs="34"; b.len="3.25"; var c=newRow(12); c.m="600";
     o.rows=[a,b,c]; o.delivery="120"; return o; }
   var offer = store.offer || sampleOffer();
-  if(/^ОФ-/.test(offer.no)) offer.no=offer.no.replace(/^ОФ-/,"ТП-");
+  if(/^ТП-/.test(offer.no)) offer.no=offer.no.replace(/^ТП-/,"ОФ-");
   (function migrateOffer(o){
     o.extras=o.extras||[];
     if(o.delivery==null){ var di=o.extras.findIndex(function(x){ return String(x.name).trim().toLowerCase()==="доставка"; }); o.delivery = di>=0 ? o.extras.splice(di,1)[0].amount : ""; }
@@ -912,7 +912,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
     offer.extras.forEach(function(x){ if(String(x.name).trim()||num(x.amount)) svc(x.name, num(x.amount)); });
     return "<div class=\"of"+(V?" vat":"")+"\">"+
       "<div class=\"rc-head\"><div class=\"rc-co\"><img class=\"rc-logo\" src=\""+logoSrc()+"\" alt=\"\"><div><b>"+esc(s.company)+"</b>"+(s.eik?"<div>ЕИК "+esc(s.eik)+"</div>":"")+"<div>"+esc(s.address)+"</div>"+(s.phone?"<div>тел. "+esc(s.phone)+"</div>":"")+"</div></div>"+
-      "<div class=\"rc-doc\"><div class=\"rc-title\">Търговско предложение</div><div class=\"rc-kv\"><span>№</span><span>"+esc(offer.no)+"</span><span>Дата</span><span>"+esc(fmtDate(offer.date))+"</span>"+(until?"<span>Валидна до</span><span>"+until+"</span>":"")+"</div></div></div>"+
+      "<div class=\"rc-doc\"><div class=\"rc-title\">Оферта</div><div class=\"rc-kv\"><span>№</span><span>"+esc(offer.no)+"</span><span>Дата</span><span>"+esc(fmtDate(offer.date))+"</span>"+(until?"<span>Валидна до</span><span>"+until+"</span>":"")+"</div></div></div>"+
       "<div class=\"of-meta\"><div><div class=\"rc-lbl\">Клиент</div><b>"+esc(offer.client)+"</b><div>"+esc(offer.contact)+"</div></div><div><div class=\"rc-lbl\">Обект / доставка до</div><b>"+esc(offer.site)+"</b></div></div>"+
       spec+
       "<table><thead><tr><th style=\"width:7mm\">№</th><th>Артикул</th><th>"+(plan.length?"Количество":"Дължина")+"</th><th>Тегло, кг</th><th>Цена €/т<br>без ДДС</th>"+(V?"<th class=\"v\">Цена €/т<br>с ДДС</th>":"")+"<th>Сума<br>без ДДС</th>"+(V?"<th class=\"v\">Сума<br>с ДДС</th>":"")+"</tr></thead><tbody>"+rows+"</tbody></table>"+
@@ -953,7 +953,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
       (V?"<span class=\"vat\">ДДС 20%</span><span class=\"vat\">"+money(c.vat)+"</span><span class=\"g vat\">Общо с ДДС</span><span class=\"g vat\">"+money(c.total)+"</span>":"");
     $("o-vat").setAttribute("aria-pressed", V?"true":"false");
     $("o-vat").textContent = V ? "✓ ДДС 20% е показан" : "+ ДДС 20%";
-    $("o-vat-hint").textContent = V ? "В предложението има отделни колони с ДДС. Натиснете пак, за да ги скриете." : "Предложението е само с цени без ДДС.";
+    $("o-vat-hint").textContent = V ? "В офертата има отделни колони с ДДС. Натиснете пак, за да ги скриете." : "Офертата е само с цени без ДДС.";
     fitOffer();
   }
   function renderOffer(){
@@ -981,7 +981,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
   $("of-add").addEventListener("click",function(){ var last=offer.rows[offer.rows.length-1]||{}; var i=DIAMS.indexOf(+last.d); offer.rows.push(newRow(DIAMS[Math.min(DIAMS.length-1,i+1)]||12,last.mode)); renderOfferRows(); offerChanged(); var ins=document.querySelectorAll("#of-rows .of-row:last-child input"); if(ins[0]) ins[0].focus(); });
   $("of-add-extra").addEventListener("click",function(){ offer.extras.push({name:"",amount:""}); renderOfferRows(); offerChanged(); var ins=document.querySelectorAll("#of-extras [data-xf=name]"); ins[ins.length-1].focus(); });
   function ofFlash(t){ $("of-status").textContent=t; clearTimeout(ofFlash.t); ofFlash.t=setTimeout(function(){ $("of-status").textContent=""; },3000); }
-  $("of-new").addEventListener("click",function(){ if(!offer.sample && offer.no===offerNo(store.settings.offerNo)) store.settings.offerNo++; offer=blankOffer(); saveOffer(); persist(); renderOffer(); ofFlash("Ново ТП "+offer.no); });
+  $("of-new").addEventListener("click",function(){ if(!offer.sample && offer.no===offerNo(store.settings.offerNo)) store.settings.offerNo++; offer=blankOffer(); saveOffer(); persist(); renderOffer(); ofFlash("Нова оферта "+offer.no); });
   $("of-print").addEventListener("click",function(){ bumpOfferNo(); try{ window.print(); }catch(e){} });
   function bumpOfferNo(){ if(!offer.sample && offer.no===offerNo(store.settings.offerNo)){ store.settings.offerNo++; persist(); } }
   $("of-share").addEventListener("click", function(){
@@ -1019,7 +1019,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
     d.items=offer.rows.filter(function(r){ return rowWt(r)>0; }).map(function(r){ return {name:"Арматура B500B",grade:"B500B",d:String(r.d),w:String(Math.round(rowWt(r)))}; });
     if(!d.items.length) d.items=[{name:"Арматура B500B",grade:"B500B",d:"",w:""}];
     d.site=offer.site||""; if(String(offer.client).trim()){ d.hasClient=true; d.client=offer.client; var ci=findClient(offer.client); if(ci>=0){ d.clientEik=store.clients[ci].eik; d.clientAddr=store.clients[ci].addr; } }
-    d.note = "По ТП "+offer.no;
+    d.note = "По оферта "+offer.no;
     doc=d; store.draft=doc; persist(); fillForm(); show("new"); flash("Бележката е попълнена от "+offer.no);
   });
 
