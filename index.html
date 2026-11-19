@@ -115,7 +115,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .rc-box span:nth-last-child(-n+2){border-bottom:0}
 .rc-box .big{font-size:1.15em}
 .rc-box.t span:nth-child(even){text-align:left;font-family:var(--sans)}
-.rc-times{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--ink);margin-top:3mm}
+.rc-times{display:grid;grid-template-columns:repeat(2,1fr);border:1px solid var(--ink);margin-top:3mm}
 .rc-times div{border-right:1px solid var(--ink);text-align:center}
 .rc-times div:last-child{border-right:0}
 .rc-times small{display:block;font-size:.74em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--ink);padding:.8mm 1mm;background:#f1f1f1}
@@ -277,10 +277,8 @@ input[type=number]{font-variant-numeric:tabular-nums}
             <div class="grid">
               <label class="f">Тръгване от склада<input id="f-tDepart" type="time" data-k="tDepart"></label>
               <label class="f">Пристигане на обекта<input id="f-tArrive" type="time" data-k="tArrive"></label>
-              <label class="f">Начало на разтоварване<input id="f-tStart" type="time" data-k="tStart"></label>
-              <label class="f">Край на разтоварване<input id="f-tEnd" type="time" data-k="tEnd"></label>
             </div>
-            <span class="hint">Празните часове остават за попълване на ръка на обекта.</span>
+            <span class="hint">Ако часът на пристигане е празен, шофьорът го попълва на ръка на обекта.</span>
           </fieldset>
           <div class="sep"></div>
           <fieldset>
@@ -459,10 +457,8 @@ input[type=number]{font-variant-numeric:tabular-nums}
         "<div class=\"rc-box t\"><span>МПС</span><span><b>"+esc(doc.plate)+"</b></span><span>Ремарке</span><span>"+esc(doc.trailer)+"</span><span>Шофьор</span><span>"+esc(doc.driver)+"</span><span>Превозвач</span><span>"+esc(doc.carrier)+"</span></div>"+
       "</div>"+
       "<div class=\"rc-times\">"+
-        "<div><small>Тръгване</small><b>"+esc(doc.tDepart)+"</b></div>"+
-        "<div><small>Пристигане</small><b>"+esc(doc.tArrive)+"</b></div>"+
-        "<div><small>Начало разтовар.</small><b>"+esc(doc.tStart)+"</b></div>"+
-        "<div><small>Край разтовар.</small><b>"+esc(doc.tEnd)+"</b></div>"+
+        "<div><small>Тръгване от склада</small><b>"+esc(doc.tDepart)+"</b></div>"+
+        "<div><small>Пристигане на обекта</small><b>"+esc(doc.tArrive)+"</b></div>"+
       "</div>"+
       (doc.note?"<div class=\"rc-note\"><b>Забележка:</b> "+esc(doc.note)+"</div>":"")+
       (s.decl?"<div class=\"rc-decl\">"+esc(s.decl)+"</div>":"")+
