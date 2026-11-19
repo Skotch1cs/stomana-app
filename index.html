@@ -878,7 +878,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
     document.querySelectorAll("#of-rows .of-row").forEach(function(el){
       var r=offer.rows[+el.dataset.i], o=el.querySelector("[data-out]"), w=rowWt(r), sum=rowSum(r);
       if(o) o.textContent=String(kgm(r.d)).replace(".",",")+" кг/м";
-      el.querySelector("[data-res]").innerHTML = "<span>= <b>"+fmtW(w)+" кг</b></span>"+(rowLen(r)&&r.mode==="pcs"?"<span>"+fmtW(rowLen(r))+" м</span>":"")+"<span>"+money(sum)+" без ДДС</span>"+(V?"<span class=\"vat\">"+money(sum*1.2)+" с ДДС</span>":"");
+      el.querySelector("[data-res]").innerHTML = "<span>= <b>"+fmtW(w)+" кг</b></span>"+(rowLen(r)&&r.mode==="pcs"?"<span>"+fmtW(rowLen(r))+" м</span>":"");
     });
     $("of-sum").innerHTML = "<span>Общо тегло</span><span>"+fmtW(c.wt)+" кг</span>"+
       "<span>Арматура без ДДС</span><span>"+money(c.goods-c.disc)+"</span>"+
