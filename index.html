@@ -1,0 +1,644 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#3c4650">
+<title>Експедиционни бележки</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: work bench — form column on the left, live A4 sheet on the right; stacks on phones. Paper stays white in both themes. */
+:root{
+  --bg:#eef0f2; --panel:#ffffff; --fg:#1b2127; --muted:#5d6873; --line:#d3d8dd;
+  --accent:#1f5f8b; --accent-ink:#ffffff; --steel:#3c4650; --warn:#a4470f; --field:#f7f8f9;
+  --paper:#ffffff; --ink:#111111; --ink-soft:#444444;
+  --sans:"IBM Plex Sans",system-ui,"Segoe UI",Roboto,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#14181c; --panel:#1d2329; --fg:#e4e8ec; --muted:#9aa5b0; --line:#323b44;
+  --accent:#5aa3d6; --accent-ink:#0d1a24; --steel:#c3ccd4; --warn:#f0965a; --field:#242b32; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14181c; --panel:#1d2329; --fg:#e4e8ec; --muted:#9aa5b0; --line:#323b44;
+  --accent:#5aa3d6; --accent-ink:#0d1a24; --steel:#c3ccd4; --warn:#f0965a; --field:#242b32; color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--sans);font-size:14px;line-height:1.45}
+.topbar{background:var(--steel);color:var(--bg);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.02em}
+.brand svg{flex:none}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tab{background:transparent;border:1px solid transparent;color:inherit;font:inherit;font-weight:500;padding:6px 12px;border-radius:6px;cursor:pointer;opacity:.8}
+.tab[aria-selected="true"]{opacity:1;border-color:currentColor}
+.tab:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 40px}
+
+.bench{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:20px;align-items:start}
+@media (max-width:980px){.bench{grid-template-columns:minmax(0,1fr)}}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
+.form{display:flex;flex-direction:column;gap:14px}
+fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;min-width:0}
+legend{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:0;margin-bottom:6px}
+.sep{border-top:1px solid var(--line)}
+.grid{display:grid;gap:8px 10px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);min-width:0}
+input,select,textarea{font:inherit;font-size:14px;color:var(--fg);background:var(--field);border:1px solid var(--line);border-radius:5px;padding:7px 9px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:54px}
+input[type=number]{font-variant-numeric:tabular-nums}
+
+.items{overflow-x:auto}
+.items table{border-collapse:collapse;width:100%;min-width:620px}
+.items th{font-size:11px;font-weight:600;color:var(--muted);text-align:left;padding:0 4px 4px}
+.items td{padding:2px}
+.items input{padding:6px 7px}
+.items .num{width:76px}
+.items .d{width:64px}
+.del{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:5px;width:30px;height:32px;cursor:pointer;font-size:16px;line-height:1}
+.del:hover{color:var(--warn);border-color:var(--warn)}
+.hint{font-size:12px;color:var(--muted)}
+
+.btn{font:inherit;font-weight:600;border-radius:6px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--fg)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.small{padding:5px 10px;font-size:13px;font-weight:500}
+.btn.danger{color:var(--warn);border-color:var(--warn)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.toolbar .spacer{flex:1}
+.status{font-size:12px;color:var(--muted)}
+.chip{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid var(--warn);color:var(--warn)}
+.notice{font-size:12px;color:var(--warn);margin:0 0 10px}
+
+.preview-col{position:sticky;top:12px;min-width:0}
+.preview-wrap{overflow:hidden;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.18),0 8px 24px rgba(0,0,0,.10)}
+.sheet{width:210mm;min-height:297mm;background:var(--paper);color:var(--ink);transform-origin:0 0;font-family:var(--sans)}
+
+/* ---------- receipt (paper) ---------- */
+.rc{padding:11mm 12mm 9mm;font-size:9.6pt;line-height:1.3;color:var(--ink)}
+.copies-2 .rc{height:148.5mm;padding:7mm 11mm 5mm;font-size:8.6pt;overflow:hidden}
+.copies-2 .rc + .rc{border-top:1px dashed #999}
+.rc-head{display:grid;grid-template-columns:1fr auto;gap:8mm;align-items:start}
+.rc-co{display:flex;gap:4mm;align-items:flex-start}
+.rc-logo{max-height:17mm;max-width:38mm;object-fit:contain}
+.copies-2 .rc-logo{max-height:13mm}
+.rc-co b{font-size:1.15em;display:block}
+.rc-co div{color:var(--ink-soft)}
+.rc-doc{min-width:72mm}
+.rc-title{font-weight:700;font-size:1.25em;text-transform:uppercase;letter-spacing:.03em;border-bottom:1.5px solid var(--ink);padding-bottom:1mm;margin-bottom:1.5mm}
+.rc-kv{display:grid;grid-template-columns:auto 1fr;gap:.6mm 5mm}
+.rc-kv span:nth-child(odd){color:var(--ink-soft)}
+.rc-kv span:nth-child(even){font-family:var(--mono);font-weight:600}
+.rc-copy{font-size:.8em;color:var(--ink-soft);text-align:right;margin-top:1mm;text-transform:uppercase;letter-spacing:.05em}
+.rc-parties{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:5mm}
+.copies-2 .rc-parties{margin-top:3mm}
+.rc-lbl{font-size:.78em;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--ink);padding-bottom:.6mm;margin-bottom:1mm}
+.rc-route{margin-top:3mm;display:grid;grid-template-columns:1fr auto 1fr;gap:3mm;align-items:center;border:1px solid var(--ink);padding:1.6mm 3mm}
+.rc-route small{display:block;font-size:.78em;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.05em}
+.rc table{border-collapse:collapse;width:100%;margin-top:3mm}
+.copies-2 .rc table{margin-top:2mm}
+.rc th,.rc td{border:1px solid var(--ink);padding:1mm 1.6mm;vertical-align:middle}
+.rc th{font-size:.76em;text-transform:uppercase;letter-spacing:.04em;font-weight:700;background:#f1f1f1;text-align:center}
+.rc td.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.rc td.c{text-align:center}
+.rc tfoot td{font-weight:700}
+.rc-two{display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin-top:3mm}
+.rc-box{border:1px solid var(--ink);display:grid;grid-template-columns:auto 1fr}
+.rc-box span{padding:.9mm 2mm;border-bottom:1px solid #bbb}
+.rc-box span:nth-child(odd){font-size:.82em;text-transform:uppercase;letter-spacing:.04em;font-weight:600;border-right:1px solid #bbb}
+.rc-box span:nth-child(even){font-family:var(--mono);font-weight:600;text-align:right}
+.rc-box span:nth-last-child(-n+2){border-bottom:0}
+.rc-box .big{font-size:1.15em}
+.rc-box.t span:nth-child(even){text-align:left;font-family:var(--sans)}
+.rc-times{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--ink);margin-top:3mm}
+.rc-times div{border-right:1px solid var(--ink);text-align:center}
+.rc-times div:last-child{border-right:0}
+.rc-times small{display:block;font-size:.74em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--ink);padding:.8mm 1mm;background:#f1f1f1}
+.rc-times b{display:block;font-family:var(--mono);min-height:6mm;padding:1mm}
+.rc-note{margin-top:2.5mm;font-size:.92em}
+.rc-decl{margin-top:2.5mm;font-weight:600}
+.rc-sign{display:grid;grid-template-columns:repeat(3,1fr);gap:8mm;margin-top:9mm}
+.copies-2 .rc-sign{margin-top:6mm}
+.rc-sign div{border-top:1px solid var(--ink);text-align:center;padding-top:.8mm}
+.rc-sign small{display:block;font-size:.78em;color:var(--ink-soft)}
+.rc-sign b{display:block;font-weight:600;min-height:1.2em}
+.rc-mp{margin-top:2mm;font-size:.8em;color:var(--ink-soft);text-align:right}
+
+.copies-2 .rc{font-size:7.9pt;padding:6mm 11mm 4mm}
+.copies-2 .rc-route,.copies-2 .rc-two,.copies-2 .rc-times{margin-top:2mm}
+.copies-2 .rc-route{padding:1mm 3mm}
+.copies-2 .rc th,.copies-2 .rc td{padding:.5mm 1.4mm}
+.copies-2 .rc-box span{padding:.5mm 2mm}
+.copies-2 .rc-times b{min-height:5mm;padding:.6mm}
+.copies-2 .rc-decl,.copies-2 .rc-note{margin-top:1.5mm}
+.copies-2 .rc-sign{margin-top:7mm}
+.copies-2 .rc-mp{margin-top:1mm}
+/* archive */
+.arch{overflow-x:auto}
+.arch table{border-collapse:collapse;width:100%;min-width:640px}
+.arch th,.arch td{text-align:left;padding:8px;border-bottom:1px solid var(--line)}
+.arch th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.arch td.n{text-align:right;font-variant-numeric:tabular-nums}
+.empty{padding:28px 8px;color:var(--muted);text-align:center}
+.settings{max-width:760px}
+.logo-prev{max-height:60px;max-width:180px;background:#fff;border:1px solid var(--line);border-radius:4px;padding:4px}
+
+@media (max-width:640px){
+  input,select,textarea{font-size:16px}
+  .toolbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:8px}
+  .toolbar .btn{flex:1 1 auto}
+  .items table{min-width:0}
+  .items thead{display:none}
+  .items tbody,.items td{display:block}
+  .items tr{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .items td{padding:0;min-width:0}
+  .items td:first-child{grid-column:1 / 3}
+  .items td::before{content:attr(data-label);display:block;font-size:11px;color:var(--muted);margin-bottom:2px}
+  .items .num,.items .d,.items input{width:100%!important}
+  .items td:last-child{display:flex;align-items:flex-end}
+  .del{width:100%;height:38px}
+}
+@media print{
+  @page{size:A4;margin:0}
+  html,body{background:#fff!important}
+  :root{padding:0!important}
+  .topbar,.form-col,.toolbar,.notice,#view-archive,#view-settings{display:none!important}
+  main{padding:0!important}
+  .bench{display:block}
+  .preview-col{position:static}
+  .preview-wrap{box-shadow:none;border-radius:0;height:auto!important;overflow:visible}
+  .sheet{transform:none!important;min-height:0}
+  .rc th,.rc-times small{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2"><line x1="3" y1="8" x2="23" y2="8"/><line x1="3" y1="18" x2="23" y2="18"/></g><g stroke="currentColor" stroke-width="1.2"><line x1="6" y1="5.5" x2="8" y2="10.5"/><line x1="11" y1="5.5" x2="13" y2="10.5"/><line x1="16" y1="5.5" x2="18" y2="10.5"/><line x1="6" y1="15.5" x2="8" y2="20.5"/><line x1="11" y1="15.5" x2="13" y2="20.5"/><line x1="16" y1="15.5" x2="18" y2="20.5"/></g></svg>
+    <span>Арматурен склад · Експедиция</span>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-new" data-view="new" aria-selected="true">Бележка</button>
+    <button class="tab" role="tab" id="tab-archive" data-view="archive" aria-selected="false">Архив</button>
+    <button class="tab" role="tab" id="tab-settings" data-view="settings" aria-selected="false">Настройки</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ============ NEW / EDIT ============ -->
+  <section id="view-new">
+    <div class="toolbar">
+      <button class="btn primary" id="btn-print" type="button">Печат / PDF</button>
+      <button class="btn" id="btn-save" type="button">Запази</button>
+      <button class="btn" id="btn-new" type="button">Нова бележка</button>
+      <span id="sample-chip" class="chip" hidden>Примерни данни</span>
+      <span class="spacer"></span>
+      <label class="f" style="flex-direction:row;align-items:center;gap:6px">Екземпляри на лист
+        <select id="copies" style="width:auto">
+          <option value="1">1 (цял лист)</option>
+          <option value="2">2 (за шофьора и за обекта)</option>
+        </select>
+      </label>
+      <span class="status" id="status"></span>
+    </div>
+    <p class="notice" id="frame-notice" hidden>Тук е само преглед: печатът работи, когато файлът е отворен директно в браузъра (Chrome, Edge, Safari). За PDF изберете „Запази като PDF“ в прозореца за печат.</p>
+
+    <div class="bench">
+      <div class="panel form-col">
+        <form class="form" id="doc-form" autocomplete="off">
+          <fieldset>
+            <legend>Документ</legend>
+            <div class="grid">
+              <label class="f">Вид на документа<input id="f-title" data-k="title"></label>
+              <label class="f">Номер<input id="f-no" data-k="no"></label>
+              <label class="f">Дата<input id="f-date" type="date" data-k="date"></label>
+              <label class="f">Час<input id="f-time" type="time" data-k="time"></label>
+            </div>
+          </fieldset>
+          <div class="sep"></div>
+          <fieldset>
+            <legend>Получател и обект</legend>
+            <div class="grid">
+              <label class="f">Клиент (фирма / лице)<input id="f-client" data-k="client" list="dl-clients"></label>
+              <label class="f">ЕИК / ЕГН<input id="f-clientEik" data-k="clientEik"></label>
+            </div>
+            <label class="f">Адрес на клиента<input id="f-clientAddr" data-k="clientAddr"></label>
+            <label class="f">Обект (строеж)<input id="f-site" data-k="site"></label>
+            <div class="grid">
+              <label class="f">Товарене от<input id="f-from" data-k="from"></label>
+              <label class="f">Доставка до<input id="f-to" data-k="to"></label>
+            </div>
+          </fieldset>
+          <div class="sep"></div>
+          <fieldset>
+            <legend>Стока</legend>
+            <div class="items">
+              <table>
+                <thead><tr><th>Артикул</th><th>Клас</th><th>Ø мм</th><th>Дълж. м</th><th>Брой</th><th>Тегло кг</th><th></th></tr></thead>
+                <tbody id="items-body"></tbody>
+              </table>
+            </div>
+            <div class="row"><button class="btn small" type="button" id="btn-add-row">+ Добави ред</button>
+              <span class="hint">Ако теглото е празно, се смята теоретично: Ø² × 0,00617 × дължина × брой.</span></div>
+          </fieldset>
+          <div class="sep"></div>
+          <fieldset>
+            <legend>Кантар</legend>
+            <div class="grid">
+              <label class="f">Бруто, кг<input id="f-gross" type="number" step="1" min="0" data-k="gross"></label>
+              <label class="f">Тара, кг<input id="f-tare" type="number" step="1" min="0" data-k="tare"></label>
+              <label class="f">Нето, кг<input id="f-net" readonly tabindex="-1"></label>
+            </div>
+            <span class="hint">Нето = бруто − тара. Без кантар се взема сборът от редовете.</span>
+          </fieldset>
+          <div class="sep"></div>
+          <fieldset>
+            <legend>Транспорт</legend>
+            <div class="grid">
+              <label class="f">Рег. № на МПС<input id="f-plate" data-k="plate" list="dl-plates"></label>
+              <label class="f">Рег. № на ремарке<input id="f-trailer" data-k="trailer"></label>
+              <label class="f">Шофьор<input id="f-driver" data-k="driver" list="dl-drivers"></label>
+              <label class="f">Превозвач<input id="f-carrier" data-k="carrier"></label>
+            </div>
+          </fieldset>
+          <div class="sep"></div>
+          <fieldset>
+            <legend>Часове</legend>
+            <div class="grid">
+              <label class="f">Тръгване от склада<input id="f-tDepart" type="time" data-k="tDepart"></label>
+              <label class="f">Пристигане на обекта<input id="f-tArrive" type="time" data-k="tArrive"></label>
+              <label class="f">Начало на разтоварване<input id="f-tStart" type="time" data-k="tStart"></label>
+              <label class="f">Край на разтоварване<input id="f-tEnd" type="time" data-k="tEnd"></label>
+            </div>
+            <span class="hint">Празните часове остават за попълване на ръка на обекта.</span>
+          </fieldset>
+          <div class="sep"></div>
+          <fieldset>
+            <legend>Подписи и забележка</legend>
+            <div class="grid">
+              <label class="f">Издал (оператор)<input id="f-issuer" data-k="issuer"></label>
+              <label class="f">Получил (име, ако е известно)<input id="f-receiver" data-k="receiver"></label>
+            </div>
+            <label class="f">Забележка<textarea id="f-note" data-k="note"></textarea></label>
+          </fieldset>
+        </form>
+      </div>
+
+      <div class="preview-col">
+        <div class="preview-wrap" id="preview-wrap"><div class="sheet" id="sheet"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ARCHIVE ============ -->
+  <section id="view-archive" hidden>
+    <div class="panel">
+      <div class="toolbar"><b>Запазени бележки</b><span class="spacer"></span><input id="arch-q" placeholder="Търсене: клиент, МПС, номер…" style="max-width:280px"></div>
+      <div class="arch" id="arch-list"></div>
+    </div>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section id="view-settings" hidden>
+    <div class="panel settings">
+      <form class="form" id="set-form" autocomplete="off">
+        <fieldset>
+          <legend>Данни на фирмата (излизат в горния ляв ъгъл на бележката)</legend>
+          <div class="grid">
+            <label class="f">Име на фирмата<input id="s-company" data-s="company"></label>
+            <label class="f">ЕИК<input id="s-eik" data-s="eik"></label>
+          </div>
+          <label class="f">Адрес<input id="s-address" data-s="address"></label>
+          <label class="f">Телефон<input id="s-phone" data-s="phone"></label>
+          <div class="row">
+            <label class="btn small" for="s-logo" style="cursor:pointer">Качи лого</label>
+            <input id="s-logo" type="file" accept="image/*" hidden>
+            <img id="s-logo-prev" class="logo-prev" alt="Лого" hidden>
+            <button class="btn small danger" type="button" id="s-logo-del" hidden>Премахни логото</button>
+          </div>
+        </fieldset>
+        <div class="sep"></div>
+        <fieldset>
+          <legend>Номерация и стойности по подразбиране</legend>
+          <div class="grid">
+            <label class="f">Префикс на номера<input id="s-prefix" data-s="prefix"></label>
+            <label class="f">Следващ номер<input id="s-nextNo" type="number" min="1" step="1" data-s="nextNo"></label>
+            <label class="f">Склад (товарене от)<input id="s-loadPoint" data-s="loadPoint"></label>
+            <label class="f">Оператор<input id="s-operator" data-s="operator"></label>
+          </div>
+          <label class="f">Текст за потвърждение над подписите<input id="s-decl" data-s="decl"></label>
+        </fieldset>
+        <p class="hint">Данните се пазят само в този браузър на това устройство.</p>
+      </form>
+    </div>
+  </section>
+</main>
+
+<datalist id="dl-products">
+  <option value="Арматура B500B"></option><option value="Арматура B420"></option><option value="Арматура A-I (гладка)"></option>
+  <option value="Арматурна мрежа"></option><option value="Стремена"></option><option value="Тел за връзване"></option>
+  <option value="Огъната арматура по спецификация"></option>
+</datalist>
+<datalist id="dl-grades"><option value="B500B"></option><option value="B420"></option><option value="B235"></option></datalist>
+<datalist id="dl-d"><option value="6"></option><option value="8"></option><option value="10"></option><option value="12"></option><option value="14"></option><option value="16"></option><option value="18"></option><option value="20"></option><option value="22"></option><option value="25"></option><option value="28"></option><option value="32"></option></datalist>
+<datalist id="dl-clients"></datalist><datalist id="dl-plates"></datalist><datalist id="dl-drivers"></datalist>
+
+<script>
+(function(){
+  "use strict";
+  var KEY = "armatura.v1";
+  var $ = function(id){ return document.getElementById(id); };
+
+  function load(){ try { var r = localStorage.getItem(KEY); return r ? JSON.parse(r) : null; } catch(e){ return null; } }
+  function persist(){ try { localStorage.setItem(KEY, JSON.stringify(store)); return true; } catch(e){ return false; } }
+
+  function pad(n){ return String(n).padStart(2,"0"); }
+  function todayISO(){ var d=new Date(); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+  function nowHM(){ var d=new Date(); return pad(d.getHours())+":"+pad(d.getMinutes()); }
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+  function num(v){ var n = parseFloat(String(v).replace(",",".")); return isFinite(n) ? n : 0; }
+  function fmtKg(n){ return n ? Math.round(n).toLocaleString("bg-BG") : ""; }
+  function fmtNum(v){ return v===""||v==null ? "" : String(v).replace(".",","); }
+  function fmtDate(iso){ if(!iso) return ""; var p=iso.split("-"); return p[2]+"."+p[1]+"."+p[0]+" г."; }
+  function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+  var DEFAULT_SETTINGS = {
+    company:"Вашата фирма ЕООД", eik:"000000000", address:"гр. София, складова база", phone:"+359 888 000 000",
+    logo:"", prefix:"ЕБ", nextNo:1, loadPoint:"Склад София", operator:"",
+    decl:"Стоката е получена в пълно количество и без видими повреди."
+  };
+  function formatNo(n){ return (store.settings.prefix ? store.settings.prefix+"-" : "") + String(n).padStart(6,"0"); }
+
+  function blankDoc(){
+    var s = store.settings;
+    return { id:null, title:"Експедиционна бележка", no:formatNo(s.nextNo), date:todayISO(), time:nowHM(),
+      client:"", clientEik:"", clientAddr:"", site:"", from:s.loadPoint||"", to:"",
+      items:[{name:"Арматура B500B",grade:"B500B",d:"",len:"",qty:"",w:""}],
+      gross:"", tare:"", plate:"", trailer:"", driver:"", carrier:"",
+      tDepart:nowHM(), tArrive:"", tStart:"", tEnd:"", issuer:s.operator||"", receiver:"", note:"" };
+  }
+  function sampleDoc(){
+    var d = blankDoc();
+    d.sample = true;
+    d.client="Монолит Груп ЕООД"; d.clientEik="203456789"; d.clientAddr="гр. София, ул. Примерна 1";
+    d.site="Жилищна сграда, ж.к. Суходол"; d.to="гр. София, ж.к. Суходол, УПИ 12";
+    d.items=[
+      {name:"Арматура B500B",grade:"B500B",d:"12",len:"12",qty:"150",w:""},
+      {name:"Арматура B500B",grade:"B500B",d:"16",len:"12",qty:"80",w:""},
+      {name:"Стремена",grade:"B500B",d:"8",len:"",qty:"400",w:"190"}
+    ];
+    d.gross="18640"; d.tare="14850";
+    d.plate="СВ 9047 МЕ"; d.driver="Арам Петров"; d.carrier="Собствен транспорт";
+    d.issuer="Иван Иванов";
+    return d;
+  }
+
+  var store = load() || {};
+  store.settings = Object.assign({}, DEFAULT_SETTINGS, store.settings||{});
+  store.docs = store.docs || [];
+  var doc = store.draft || sampleDoc();
+
+  /* ---------- weights ---------- */
+  function autoW(it){ var d=num(it.d), l=num(it.len), q=num(it.qty); return (d&&l&&q) ? d*d*0.00617*l*q : 0; }
+  function rowW(it){ return String(it.w).trim()!=="" ? num(it.w) : autoW(it); }
+  function itemsTotal(){ return doc.items.reduce(function(a,it){ return a+rowW(it); },0); }
+  function netW(){ var g=num(doc.gross), t=num(doc.tare); return (g&&t) ? g-t : itemsTotal(); }
+
+  /* ---------- receipt ---------- */
+  function receiptHTML(copyLabel){
+    var s = store.settings, it, rows="", i, total=itemsTotal(), hasScale = num(doc.gross)&&num(doc.tare);
+    for(i=0;i<doc.items.length;i++){
+      it=doc.items[i];
+      var w=rowW(it), isAuto = String(it.w).trim()==="" && w;
+      rows += "<tr><td class=\"c\">"+(i+1)+"</td><td>"+esc(it.name)+"</td><td class=\"c\">"+esc(it.grade)+"</td><td class=\"c\">"+esc(it.d)+"</td><td class=\"n\">"+esc(fmtNum(it.len))+"</td><td class=\"n\">"+esc(it.qty)+"</td><td class=\"n\">"+fmtKg(w)+(isAuto?"*":"")+"</td></tr>";
+    }
+    var anyAuto = doc.items.some(function(x){ return String(x.w).trim()==="" && autoW(x); });
+    return ""+
+    "<div class=\"rc\">"+
+      "<div class=\"rc-head\">"+
+        "<div class=\"rc-co\">"+(s.logo?"<img class=\"rc-logo\" src=\""+s.logo+"\" alt=\"\">":"")+
+          "<div><b>"+esc(s.company)+"</b>"+(s.eik?"<div>ЕИК "+esc(s.eik)+"</div>":"")+"<div>"+esc(s.address)+"</div>"+(s.phone?"<div>тел. "+esc(s.phone)+"</div>":"")+"</div></div>"+
+        "<div class=\"rc-doc\"><div class=\"rc-title\">"+esc(doc.title)+"</div>"+
+          "<div class=\"rc-kv\"><span>№</span><span>"+esc(doc.no)+"</span><span>Дата</span><span>"+esc(fmtDate(doc.date))+"</span><span>Час</span><span>"+esc(doc.time)+"</span></div>"+
+          (copyLabel?"<div class=\"rc-copy\">"+copyLabel+"</div>":"")+
+        "</div>"+
+      "</div>"+
+      "<div class=\"rc-parties\">"+
+        "<div><div class=\"rc-lbl\">Получател</div><b>"+esc(doc.client)+"</b>"+(doc.clientEik?"<div>ЕИК / ЕГН "+esc(doc.clientEik)+"</div>":"")+"<div>"+esc(doc.clientAddr)+"</div></div>"+
+        "<div><div class=\"rc-lbl\">Обект</div><b>"+esc(doc.site)+"</b></div>"+
+      "</div>"+
+      "<div class=\"rc-route\"><div><small>Товарене от</small><b>"+esc(doc.from)+"</b></div><div aria-hidden=\"true\">→</div><div><small>Доставка до</small><b>"+esc(doc.to)+"</b></div></div>"+
+      "<table><thead><tr><th style=\"width:7mm\">№</th><th>Артикул</th><th>Клас</th><th>Ø, мм</th><th>Дълж., м</th><th>Брой</th><th>Тегло, кг</th></tr></thead>"+
+        "<tbody>"+rows+"</tbody>"+
+        "<tfoot><tr><td colspan=\"6\" style=\"text-align:right\">Общо по редове</td><td class=\"n\">"+fmtKg(total)+"</td></tr></tfoot></table>"+
+      (anyAuto?"<div style=\"font-size:.78em;color:var(--ink-soft);margin-top:.8mm\">* теоретично тегло</div>":"")+
+      "<div class=\"rc-two\">"+
+        "<div class=\"rc-box\"><span>Бруто, кг</span><span>"+fmtKg(num(doc.gross))+"</span><span>Тара, кг</span><span>"+fmtKg(num(doc.tare))+"</span><span>Нето, кг</span><span class=\"big\">"+fmtKg(netW())+(hasScale?"":(netW()?"*":""))+"</span></div>"+
+        "<div class=\"rc-box t\"><span>МПС</span><span><b>"+esc(doc.plate)+"</b></span><span>Ремарке</span><span>"+esc(doc.trailer)+"</span><span>Шофьор</span><span>"+esc(doc.driver)+"</span><span>Превозвач</span><span>"+esc(doc.carrier)+"</span></div>"+
+      "</div>"+
+      "<div class=\"rc-times\">"+
+        "<div><small>Тръгване</small><b>"+esc(doc.tDepart)+"</b></div>"+
+        "<div><small>Пристигане</small><b>"+esc(doc.tArrive)+"</b></div>"+
+        "<div><small>Начало разтовар.</small><b>"+esc(doc.tStart)+"</b></div>"+
+        "<div><small>Край разтовар.</small><b>"+esc(doc.tEnd)+"</b></div>"+
+      "</div>"+
+      (doc.note?"<div class=\"rc-note\"><b>Забележка:</b> "+esc(doc.note)+"</div>":"")+
+      (s.decl?"<div class=\"rc-decl\">"+esc(s.decl)+"</div>":"")+
+      "<div class=\"rc-sign\">"+
+        "<div><small>Издал</small><b>"+esc(doc.issuer)+"</b></div>"+
+        "<div><small>Шофьор</small><b>"+esc(doc.driver)+"</b></div>"+
+        "<div><small>Получил</small><b>"+esc(doc.receiver)+"</b></div>"+
+      "</div>"+
+      "<div class=\"rc-mp\">М.П.</div>"+
+    "</div>";
+  }
+
+  var sheet=$("sheet"), wrap=$("preview-wrap");
+  function renderPreview(){
+    var two = $("copies").value==="2";
+    sheet.className = "sheet" + (two?" copies-2":"");
+    sheet.innerHTML = two ? receiptHTML("Екземпляр за обекта")+receiptHTML("Екземпляр за склада") : receiptHTML("");
+    $("f-net").value = fmtKg(netW());
+    $("sample-chip").hidden = !doc.sample;
+    fit();
+  }
+  function fit(){
+    var w = wrap.clientWidth, sw = sheet.offsetWidth;
+    if(!sw) return;
+    var k = Math.min(1, w/sw);
+    sheet.style.transform = "scale("+k+")";
+    wrap.style.height = (sheet.offsetHeight*k)+"px";
+  }
+  if(window.ResizeObserver){ new ResizeObserver(fit).observe(wrap); } else { window.addEventListener("resize",fit); }
+
+  /* ---------- form binding ---------- */
+  var formInputs = document.querySelectorAll("#doc-form [data-k]");
+  function fillForm(){
+    formInputs.forEach(function(el){ el.value = doc[el.dataset.k]==null ? "" : doc[el.dataset.k]; });
+    renderItems(); renderPreview();
+  }
+  var saveTimer;
+  function changed(){
+    doc.sample = false;
+    renderPreview();
+    store.draft = doc;
+    clearTimeout(saveTimer); saveTimer = setTimeout(persist, 400);
+    setStatus(doc.id ? "Има незапазени промени" : "Чернова");
+  }
+  $("doc-form").addEventListener("input", function(e){
+    var el=e.target;
+    if(el.dataset.k){ doc[el.dataset.k]=el.value; changed(); }
+    else if(el.dataset.row!=null){ doc.items[+el.dataset.row][el.dataset.f]=el.value; updateRowHint(+el.dataset.row); changed(); }
+  });
+  $("doc-form").addEventListener("submit", function(e){ e.preventDefault(); });
+
+  var tbody=$("items-body");
+  function renderItems(){
+    tbody.innerHTML = doc.items.map(function(it,i){
+      return "<tr>"+
+        "<td data-label=\"Артикул\"><input data-row=\""+i+"\" data-f=\"name\" list=\"dl-products\" value=\""+esc(it.name)+"\" aria-label=\"Артикул\"></td>"+
+        "<td data-label=\"Клас\"><input class=\"d\" data-row=\""+i+"\" data-f=\"grade\" style=\"width:78px\" list=\"dl-grades\" value=\""+esc(it.grade)+"\" aria-label=\"Клас\"></td>"+
+        "<td data-label=\"Ø мм\"><input class=\"d\" data-row=\""+i+"\" data-f=\"d\" list=\"dl-d\" inputmode=\"numeric\" value=\""+esc(it.d)+"\" aria-label=\"Диаметър\"></td>"+
+        "<td data-label=\"Дължина м\"><input class=\"num\" data-row=\""+i+"\" data-f=\"len\" inputmode=\"decimal\" value=\""+esc(it.len)+"\" aria-label=\"Дължина\"></td>"+
+        "<td data-label=\"Брой\"><input class=\"num\" data-row=\""+i+"\" data-f=\"qty\" inputmode=\"numeric\" value=\""+esc(it.qty)+"\" aria-label=\"Брой\"></td>"+
+        "<td data-label=\"Тегло кг\"><input class=\"num\" data-row=\""+i+"\" data-f=\"w\" inputmode=\"decimal\" value=\""+esc(it.w)+"\" placeholder=\""+(autoW(it)?Math.round(autoW(it)):"")+"\" aria-label=\"Тегло\"></td>"+
+        "<td><button type=\"button\" class=\"del\" data-del=\""+i+"\" aria-label=\"Изтрий реда\">×</button></td></tr>";
+    }).join("");
+  }
+  function updateRowHint(i){
+    var el = tbody.querySelector("input[data-row=\""+i+"\"][data-f=\"w\"]");
+    if(el){ var a=autoW(doc.items[i]); el.placeholder = a?Math.round(a):""; }
+  }
+  tbody.addEventListener("click", function(e){
+    var b=e.target.closest("[data-del]"); if(!b) return;
+    doc.items.splice(+b.dataset.del,1);
+    if(!doc.items.length) doc.items.push({name:"",grade:"",d:"",len:"",qty:"",w:""});
+    renderItems(); changed();
+  });
+  $("btn-add-row").addEventListener("click", function(){
+    var last = doc.items[doc.items.length-1]||{};
+    doc.items.push({name:last.name||"Арматура B500B",grade:last.grade||"B500B",d:"",len:last.len||"",qty:"",w:""});
+    renderItems(); changed();
+    var ins = tbody.querySelectorAll("input[data-f=\"d\"]"); ins[ins.length-1].focus();
+  });
+
+  /* ---------- actions ---------- */
+  var statusTimer;
+  function setStatus(t){ $("status").textContent=t; }
+  function flash(t){ setStatus(t); clearTimeout(statusTimer); statusTimer=setTimeout(function(){ setStatus(""); },3000); }
+
+  function saveDoc(){
+    var s=store.settings;
+    var copy = JSON.parse(JSON.stringify(doc)); delete copy.sample;
+    if(!copy.id){
+      copy.id = uid();
+      if(copy.no===formatNo(s.nextNo)) s.nextNo = (+s.nextNo||1)+1;
+      store.docs.unshift(copy);
+    } else {
+      var i = store.docs.findIndex(function(d){ return d.id===copy.id; });
+      if(i>=0) store.docs[i]=copy; else store.docs.unshift(copy);
+    }
+    copy.savedAt = new Date().toISOString();
+    doc = JSON.parse(JSON.stringify(copy));
+    store.draft = doc;
+    var ok = persist();
+    flash(ok ? "Запазено: "+doc.no : "Не може да се запише в този браузър (личен режим?)");
+    refreshLists(); fillSettings();
+  }
+  $("btn-save").addEventListener("click", saveDoc);
+  $("btn-new").addEventListener("click", function(){ doc = blankDoc(); store.draft=doc; persist(); fillForm(); flash("Нова бележка "+doc.no); $("f-client").focus(); });
+  $("btn-print").addEventListener("click", function(){
+    if(!doc.id && !doc.sample) saveDoc();
+    try { window.print(); } catch(e){}
+  });
+  $("copies").addEventListener("change", function(){ store.settings.copies=$("copies").value; persist(); renderPreview(); });
+
+  try { if(window.self!==window.top) $("frame-notice").hidden=false; } catch(e){ $("frame-notice").hidden=false; }
+
+  /* ---------- archive ---------- */
+  function renderArchive(){
+    var q = $("arch-q").value.trim().toLowerCase();
+    var list = store.docs.filter(function(d){ return !q || [d.no,d.client,d.plate,d.site,d.driver].join(" ").toLowerCase().indexOf(q)>=0; });
+    if(!list.length){ $("arch-list").innerHTML = "<div class=\"empty\">"+(store.docs.length?"Няма съвпадения.":"Още няма запазени бележки. Попълнете бележка и натиснете „Запази“ или „Печат / PDF“.")+"</div>"; return; }
+    var cur = doc;
+    $("arch-list").innerHTML = "<table><thead><tr><th>№</th><th>Дата</th><th>Клиент</th><th>Обект</th><th>МПС</th><th style=\"text-align:right\">Нето, кг</th><th></th></tr></thead><tbody>"+
+      list.map(function(d){
+        doc=d; var n=netW(); doc=cur;
+        return "<tr><td><b>"+esc(d.no)+"</b></td><td>"+esc(fmtDate(d.date))+" "+esc(d.time)+"</td><td>"+esc(d.client)+"</td><td>"+esc(d.site)+"</td><td>"+esc(d.plate)+"</td><td class=\"n\">"+fmtKg(n)+"</td>"+
+          "<td><div class=\"row\" data-id=\""+d.id+"\"><button class=\"btn small\" data-act=\"open\">Отвори</button><button class=\"btn small\" data-act=\"dup\">Копие</button><button class=\"btn small danger\" data-act=\"del\">Изтрий</button></div></td></tr>";
+      }).join("")+"</tbody></table>";
+  }
+  $("arch-q").addEventListener("input", renderArchive);
+  $("arch-list").addEventListener("click", function(e){
+    var b=e.target.closest("[data-act]"); if(!b) return;
+    var box=b.closest("[data-id]"), id=box.dataset.id, d=store.docs.find(function(x){return x.id===id;});
+    if(!d) return;
+    var act=b.dataset.act;
+    if(act==="open"){ doc=JSON.parse(JSON.stringify(d)); store.draft=doc; persist(); fillForm(); show("new"); flash("Отворена "+doc.no); }
+    else if(act==="dup"){
+      var n=JSON.parse(JSON.stringify(d)); n.id=null; n.no=formatNo(store.settings.nextNo); n.date=todayISO(); n.time=nowHM(); n.tDepart=nowHM(); n.tArrive=n.tStart=n.tEnd=""; n.gross=n.tare=""; delete n.savedAt;
+      doc=n; store.draft=doc; persist(); fillForm(); show("new"); flash("Копие като "+doc.no+" — проверете теглото");
+    }
+    else if(act==="del"){ box.innerHTML="<span class=\"hint\">Изтриване?</span><button class=\"btn small danger\" data-act=\"del-yes\">Да</button><button class=\"btn small\" data-act=\"del-no\">Не</button>"; }
+    else if(act==="del-yes"){ store.docs=store.docs.filter(function(x){return x.id!==id;}); persist(); renderArchive(); refreshLists(); }
+    else if(act==="del-no"){ renderArchive(); }
+  });
+  function refreshLists(){
+    function uniq(k){ var seen={}, out=[]; store.docs.forEach(function(d){ var v=(d[k]||"").trim(); if(v&&!seen[v]){seen[v]=1;out.push(v);} }); return out; }
+    $("dl-clients").innerHTML = uniq("client").map(function(v){return "<option value=\""+esc(v)+"\"></option>";}).join("");
+    $("dl-plates").innerHTML = uniq("plate").map(function(v){return "<option value=\""+esc(v)+"\"></option>";}).join("");
+    $("dl-drivers").innerHTML = uniq("driver").map(function(v){return "<option value=\""+esc(v)+"\"></option>";}).join("");
+  }
+
+  /* ---------- settings ---------- */
+  var setInputs=document.querySelectorAll("#set-form [data-s]");
+  function fillSettings(){
+    setInputs.forEach(function(el){ el.value = store.settings[el.dataset.s]==null?"":store.settings[el.dataset.s]; });
+    var has=!!store.settings.logo;
+    $("s-logo-prev").hidden=!has; $("s-logo-del").hidden=!has; if(has) $("s-logo-prev").src=store.settings.logo;
+  }
+  $("set-form").addEventListener("input", function(e){
+    var el=e.target; if(!el.dataset.s) return;
+    store.settings[el.dataset.s] = el.dataset.s==="nextNo" ? Math.max(1,parseInt(el.value,10)||1) : el.value;
+    persist(); renderPreview();
+  });
+  $("set-form").addEventListener("submit", function(e){ e.preventDefault(); });
+  $("s-logo").addEventListener("change", function(){
+    var f=this.files&&this.files[0]; if(!f) return;
+    var rd=new FileReader();
+    rd.onload=function(){
+      var img=new Image();
+      img.onload=function(){
+        var max=480, k=Math.min(1,max/Math.max(img.width,img.height));
+        var c=document.createElement("canvas"); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
+        c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+        store.settings.logo=c.toDataURL("image/png"); persist(); fillSettings(); renderPreview();
+      };
+      img.src=rd.result;
+    };
+    rd.readAsDataURL(f);
+  });
+  $("s-logo-del").addEventListener("click", function(){ store.settings.logo=""; persist(); fillSettings(); renderPreview(); });
+
+  /* ---------- views ---------- */
+  function show(v){
+    ["new","archive","settings"].forEach(function(n){ $("view-"+n).hidden = n!==v; $("tab-"+n).setAttribute("aria-selected", n===v?"true":"false"); });
+    if(v==="archive") renderArchive();
+    if(v==="new") fit();
+  }
+  document.querySelectorAll(".tab").forEach(function(t){ t.addEventListener("click", function(){ show(t.dataset.view); }); });
+
+  $("copies").value = store.settings.copies||"1";
+  fillSettings(); refreshLists(); fillForm();
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+})();
+</script>
+
+</body>
+</html>
