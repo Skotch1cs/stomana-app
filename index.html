@@ -138,6 +138,13 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .copies-2 .rc-decl,.copies-2 .rc-note{margin-top:1.5mm}
 .copies-2 .rc-sign{margin-top:7mm}
 .copies-2 .rc-mp{margin-top:1mm}
+.chk{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;padding:4px 0}
+.chk input{width:20px;height:20px;flex:none}
+.client-box{display:flex;flex-direction:column;gap:8px;border-left:3px solid var(--accent);padding-left:12px}
+.client-box[hidden]{display:none}
+.clients-list{display:flex;flex-direction:column;gap:6px}
+.clients-list .row{justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:6px}
+.rc-parties.one{grid-template-columns:1fr}
 /* archive */
 .arch{overflow-x:auto}
 .arch table{border-collapse:collapse;width:100%;min-width:640px}
@@ -225,16 +232,21 @@ input[type=number]{font-variant-numeric:tabular-nums}
           </fieldset>
           <div class="sep"></div>
           <fieldset>
-            <legend>Получател и обект</legend>
-            <div class="grid">
-              <label class="f">Клиент (фирма / лице)<input id="f-client" data-k="client" list="dl-clients"></label>
-              <label class="f">ЕИК / ЕГН<input id="f-clientEik" data-k="clientEik"></label>
-            </div>
-            <label class="f">Адрес на клиента<input id="f-clientAddr" data-k="clientAddr"></label>
-            <label class="f">Обект (строеж)<input id="f-site" data-k="site"></label>
+            <legend>Обект и получател</legend>
+            <label class="f">Обект (строеж)<input id="f-site" data-k="site" list="dl-sites"></label>
             <div class="grid">
               <label class="f">Товарене от<input id="f-from" data-k="from"></label>
-              <label class="f">Доставка до<input id="f-to" data-k="to"></label>
+              <label class="f">Доставка до<input id="f-to" data-k="to" list="dl-to"></label>
+            </div>
+            <label class="chk"><input type="checkbox" id="f-hasClient"> Посочи фирма получател на бележката</label>
+            <div id="client-box" class="client-box" hidden>
+              <label class="f">Запомнени фирми<select id="client-pick"></select></label>
+              <div class="grid">
+                <label class="f">Фирма / лице<input id="f-client" data-k="client"></label>
+                <label class="f">ЕИК / ЕГН<input id="f-clientEik" data-k="clientEik"></label>
+              </div>
+              <label class="f">Адрес на фирмата<input id="f-clientAddr" data-k="clientAddr"></label>
+              <div class="row"><button class="btn small" type="button" id="btn-remember">Запомни фирмата</button><span class="hint" id="remember-hint"></span></div>
             </div>
           </fieldset>
           <div class="sep"></div>
@@ -327,6 +339,11 @@ input[type=number]{font-variant-numeric:tabular-nums}
         </fieldset>
         <div class="sep"></div>
         <fieldset>
+          <legend>Запомнени фирми получатели</legend>
+          <div class="clients-list" id="clients-list"></div>
+        </fieldset>
+        <div class="sep"></div>
+        <fieldset>
           <legend>Номерация и стойности по подразбиране</legend>
           <div class="grid">
             <label class="f">Префикс на номера<input id="s-prefix" data-s="prefix"></label>
@@ -349,7 +366,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
 </datalist>
 <datalist id="dl-grades"><option value="B500B"></option><option value="B420"></option><option value="B235"></option></datalist>
 <datalist id="dl-d"><option value="6"></option><option value="8"></option><option value="10"></option><option value="12"></option><option value="14"></option><option value="16"></option><option value="18"></option><option value="20"></option><option value="22"></option><option value="25"></option><option value="28"></option><option value="32"></option></datalist>
-<datalist id="dl-clients"></datalist><datalist id="dl-plates"></datalist><datalist id="dl-drivers"></datalist>
+<datalist id="dl-clients"></datalist><datalist id="dl-sites"></datalist><datalist id="dl-to"></datalist><datalist id="dl-plates"></datalist><datalist id="dl-drivers"></datalist>
 
 <script>
 (function(){
@@ -380,7 +397,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
   function blankDoc(){
     var s = store.settings;
     return { id:null, title:"Експедиционна бележка", no:formatNo(s.nextNo), date:todayISO(), time:nowHM(),
-      client:"", clientEik:"", clientAddr:"", site:"", from:s.loadPoint||"", to:"",
+      hasClient:false, client:"", clientEik:"", clientAddr:"", site:"", from:s.loadPoint||"", to:"",
       items:[{name:"Арматура B500B",grade:"B500B",d:"",len:"",qty:"",w:""}],
       gross:"", tare:"", plate:"", trailer:"", driver:"", carrier:"",
       tDepart:nowHM(), tArrive:"", tStart:"", tEnd:"", issuer:s.operator||"", receiver:"", note:"" };
@@ -388,7 +405,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
   function sampleDoc(){
     var d = blankDoc();
     d.sample = true;
-    d.client="Монолит Груп ЕООД"; d.clientEik="203456789"; d.clientAddr="гр. София, ул. Примерна 1";
+    d.hasClient=true; d.client="Монолит Груп ЕООД"; d.clientEik="203456789"; d.clientAddr="гр. София, ул. Примерна 1";
     d.site="Жилищна сграда, ж.к. Суходол"; d.to="гр. София, ж.к. Суходол, УПИ 12";
     d.items=[
       {name:"Арматура B500B",grade:"B500B",d:"12",len:"12",qty:"150",w:""},
@@ -413,6 +430,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
     if(st.loadPoint==="Склад София") st.loadPoint=DEFAULT_SETTINGS.loadPoint;
   })(store.settings);
   store.docs = store.docs || [];
+  store.clients = store.clients || [];
   var doc = store.draft || sampleDoc();
 
   /* ---------- weights ---------- */
@@ -422,6 +440,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
   function netW(){ var g=num(doc.gross), t=num(doc.tare); return (g&&t) ? g-t : itemsTotal(); }
 
   /* ---------- receipt ---------- */
+  function showClient(){ return doc.hasClient!==false && !!String(doc.client||"").trim(); }
   function receiptHTML(copyLabel){
     var s = store.settings, it, rows="", i, total=itemsTotal(), hasScale = num(doc.gross)&&num(doc.tare);
     for(i=0;i<doc.items.length;i++){
@@ -440,8 +459,8 @@ input[type=number]{font-variant-numeric:tabular-nums}
           (copyLabel?"<div class=\"rc-copy\">"+copyLabel+"</div>":"")+
         "</div>"+
       "</div>"+
-      "<div class=\"rc-parties\">"+
-        "<div><div class=\"rc-lbl\">Получател</div><b>"+esc(doc.client)+"</b>"+(doc.clientEik?"<div>ЕИК / ЕГН "+esc(doc.clientEik)+"</div>":"")+"<div>"+esc(doc.clientAddr)+"</div></div>"+
+      (showClient()?"<div class=\"rc-parties\">":"<div class=\"rc-parties one\">")+
+        (showClient()?"<div><div class=\"rc-lbl\">Получател</div><b>"+esc(doc.client)+"</b>"+(doc.clientEik?"<div>ЕИК / ЕГН "+esc(doc.clientEik)+"</div>":"")+"<div>"+esc(doc.clientAddr)+"</div></div>":"")+
         "<div><div class=\"rc-lbl\">Обект</div><b>"+esc(doc.site)+"</b></div>"+
       "</div>"+
       "<div class=\"rc-route\"><div><small>Товарене от</small><b>"+esc(doc.from)+"</b></div><div aria-hidden=\"true\">→</div><div><small>Доставка до</small><b>"+esc(doc.to)+"</b></div></div>"+
@@ -492,6 +511,9 @@ input[type=number]{font-variant-numeric:tabular-nums}
   var formInputs = document.querySelectorAll("#doc-form [data-k]");
   function fillForm(){
     formInputs.forEach(function(el){ el.value = doc[el.dataset.k]==null ? "" : doc[el.dataset.k]; });
+    if(doc.hasClient==null) doc.hasClient = !!String(doc.client||"").trim();
+    $("f-hasClient").checked = !!doc.hasClient; $("client-box").hidden = !doc.hasClient;
+    renderClientPick();
     renderItems(); renderPreview();
   }
   var saveTimer;
@@ -504,7 +526,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
   }
   $("doc-form").addEventListener("input", function(e){
     var el=e.target;
-    if(el.dataset.k){ doc[el.dataset.k]=el.value; changed(); }
+    if(el.dataset.k){ doc[el.dataset.k]=el.value; changed(); if(/^client/.test(el.dataset.k)) renderClientPick(); }
     else if(el.dataset.row!=null){ doc.items[+el.dataset.row][el.dataset.f]=el.value; updateRowHint(+el.dataset.row); changed(); }
   });
   $("doc-form").addEventListener("submit", function(e){ e.preventDefault(); });
@@ -544,6 +566,40 @@ input[type=number]{font-variant-numeric:tabular-nums}
   function setStatus(t){ $("status").textContent=t; }
   function flash(t){ setStatus(t); clearTimeout(statusTimer); statusTimer=setTimeout(function(){ setStatus(""); },3000); }
 
+  /* ---------- saved clients ---------- */
+  function findClient(name){ var n=String(name||"").trim().toLowerCase(); return store.clients.findIndex(function(c){ return c.name.trim().toLowerCase()===n; }); }
+  function renderClientPick(){
+    var sorted = store.clients.slice().sort(function(a,b){ return a.name.localeCompare(b.name,"bg"); });
+    var cur = findClient(doc.client);
+    $("client-pick").innerHTML = "<option value=\"\">"+(store.clients.length?"— Изберете фирма —":"Още няма запомнени фирми")+"</option>"+
+      sorted.map(function(c){ var i=store.clients.indexOf(c); return "<option value=\""+i+"\""+(i===cur?" selected":"")+">"+esc(c.name)+(c.eik?" · "+esc(c.eik):"")+"</option>"; }).join("");
+    var known = cur>=0 && store.clients[cur].eik===(doc.clientEik||"") && store.clients[cur].addr===(doc.clientAddr||"");
+    $("btn-remember").hidden = !String(doc.client||"").trim() || known;
+    $("btn-remember").textContent = cur>=0 ? "Обнови запомнените данни" : "Запомни фирмата";
+  }
+  function rememberClient(silent){
+    var name=String(doc.client||"").trim(); if(!name) return;
+    var c={name:name, eik:String(doc.clientEik||"").trim(), addr:String(doc.clientAddr||"").trim()};
+    var i=findClient(name); if(i>=0) store.clients[i]=c; else store.clients.push(c);
+    persist(); renderClientPick(); renderClientsSettings();
+    if(!silent){ $("remember-hint").textContent="Запомнено: "+name; setTimeout(function(){ $("remember-hint").textContent=""; },2500); }
+  }
+  $("btn-remember").addEventListener("click", function(){ rememberClient(false); });
+  $("client-pick").addEventListener("change", function(){
+    var c=store.clients[+this.value]; if(this.value===""||!c) return;
+    doc.client=c.name; doc.clientEik=c.eik; doc.clientAddr=c.addr;
+    $("f-client").value=c.name; $("f-clientEik").value=c.eik; $("f-clientAddr").value=c.addr;
+    changed(); renderClientPick();
+  });
+  $("f-hasClient").addEventListener("change", function(){
+    doc.hasClient=this.checked; $("client-box").hidden=!this.checked; changed();
+    if(this.checked && !store.clients.length) $("f-client").focus();
+  });
+  function renderClientsSettings(){
+    var box=$("clients-list"); if(!box) return;
+    if(!store.clients.length){ box.innerHTML="<span class=\"hint\">Няма запомнени фирми. Добавят се с бутона „Запомни фирмата“ на бележката или автоматично при запазване.</span>"; return; }
+    box.innerHTML = store.clients.map(function(c,i){ return "<div class=\"row\"><span><b>"+esc(c.name)+"</b>"+(c.eik?" · ЕИК "+esc(c.eik):"")+(c.addr?"<br><span class=\"hint\">"+esc(c.addr)+"</span>":"")+"</span><button class=\"btn small danger\" type=\"button\" data-cdel=\""+i+"\">Изтрий</button></div>"; }).join("");
+  }
   function saveDoc(){
     var s=store.settings;
     var copy = JSON.parse(JSON.stringify(doc)); delete copy.sample;
@@ -556,6 +612,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
       if(i>=0) store.docs[i]=copy; else store.docs.unshift(copy);
     }
     copy.savedAt = new Date().toISOString();
+    if(copy.hasClient && String(copy.client||"").trim() && findClient(copy.client)<0) rememberClient(true);
     doc = JSON.parse(JSON.stringify(copy));
     store.draft = doc;
     var ok = persist();
@@ -563,7 +620,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
     refreshLists(); fillSettings();
   }
   $("btn-save").addEventListener("click", saveDoc);
-  $("btn-new").addEventListener("click", function(){ doc = blankDoc(); store.draft=doc; persist(); fillForm(); flash("Нова бележка "+doc.no); $("f-client").focus(); });
+  $("btn-new").addEventListener("click", function(){ doc = blankDoc(); store.draft=doc; persist(); fillForm(); flash("Нова бележка "+doc.no); $("f-site").focus(); });
   $("btn-print").addEventListener("click", function(){
     if(!doc.id && !doc.sample) saveDoc();
     try { window.print(); } catch(e){}
@@ -602,6 +659,8 @@ input[type=number]{font-variant-numeric:tabular-nums}
   });
   function refreshLists(){
     function uniq(k){ var seen={}, out=[]; store.docs.forEach(function(d){ var v=(d[k]||"").trim(); if(v&&!seen[v]){seen[v]=1;out.push(v);} }); return out; }
+    $("dl-sites").innerHTML = uniq("site").map(function(v){return "<option value=\""+esc(v)+"\"></option>";}).join("");
+    $("dl-to").innerHTML = uniq("to").map(function(v){return "<option value=\""+esc(v)+"\"></option>";}).join("");
     $("dl-clients").innerHTML = uniq("client").map(function(v){return "<option value=\""+esc(v)+"\"></option>";}).join("");
     $("dl-plates").innerHTML = uniq("plate").map(function(v){return "<option value=\""+esc(v)+"\"></option>";}).join("");
     $("dl-drivers").innerHTML = uniq("driver").map(function(v){return "<option value=\""+esc(v)+"\"></option>";}).join("");
@@ -635,6 +694,11 @@ input[type=number]{font-variant-numeric:tabular-nums}
     };
     rd.readAsDataURL(f);
   });
+  $("clients-list").addEventListener("click", function(e){
+    var b=e.target.closest("[data-cdel]"); if(!b) return;
+    if(b.dataset.confirm){ store.clients.splice(+b.dataset.cdel,1); persist(); renderClientsSettings(); renderClientPick(); }
+    else { b.dataset.confirm="1"; b.textContent="Сигурни ли сте? Изтрий"; }
+  });
   $("s-logo-del").addEventListener("click", function(){ store.settings.logo=""; persist(); fillSettings(); renderPreview(); });
 
   /* ---------- views ---------- */
@@ -647,7 +711,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
 
   $("top-logo").src = BUILTIN_LOGO;
   $("copies").value = store.settings.copies||"1";
-  fillSettings(); refreshLists(); fillForm();
+  fillSettings(); renderClientsSettings(); refreshLists(); fillForm();
   if(document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
 })();
 </script>
