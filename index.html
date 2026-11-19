@@ -145,6 +145,9 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .clients-list{display:flex;flex-direction:column;gap:6px}
 .clients-list .row{justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:6px}
 .rc-parties.one{grid-template-columns:1fr}
+.rc-total{grid-template-columns:1fr;align-content:center;text-align:center}
+.rc-total span{border:0!important;text-align:center!important}
+.rc-total span.big{font-size:1.9em}
 /* archive */
 .arch{overflow-x:auto}
 .arch table{border-collapse:collapse;width:100%;min-width:640px}
@@ -258,18 +261,8 @@ input[type=number]{font-variant-numeric:tabular-nums}
                 <tbody id="items-body"></tbody>
               </table>
             </div>
-            <div class="row"><button class="btn small" type="button" id="btn-add-row">+ Добави ред</button>
+            <div class="row"><button class="btn small" type="button" id="btn-add-row">+ Добави ред</button><span class="spacer" style="flex:1"></span><b>Общо: <span id="f-total">0</span> кг</b>
 </div>
-          </fieldset>
-          <div class="sep"></div>
-          <fieldset>
-            <legend>Кантар</legend>
-            <div class="grid">
-              <label class="f">Бруто, кг<input id="f-gross" type="number" step="1" min="0" data-k="gross"></label>
-              <label class="f">Тара, кг<input id="f-tare" type="number" step="1" min="0" data-k="tare"></label>
-              <label class="f">Нето, кг<input id="f-net" readonly tabindex="-1"></label>
-            </div>
-            <span class="hint">Нето = бруто − тара. Без кантар се взема сборът от редовете.</span>
           </fieldset>
           <div class="sep"></div>
           <fieldset>
@@ -412,8 +405,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
       {name:"Арматура B500B",grade:"B500B",d:"16",w:"1520"},
       {name:"Стремена",grade:"B500B",d:"8",w:"190"}
     ];
-    d.gross="18640"; d.tare="15330";
-    d.plate="СВ 9047 МЕ"; d.driver="Арам Петров"; d.carrier="Собствен транспорт";
+        d.plate="СВ 9047 МЕ"; d.driver="Арам Петров"; d.carrier="Наемен транспорт";
     d.issuer="Иван Иванов";
     return d;
   }
@@ -437,12 +429,12 @@ input[type=number]{font-variant-numeric:tabular-nums}
   function autoW(it){ return 0; }
   function rowW(it){ return String(it.w).trim()!=="" ? num(it.w) : autoW(it); }
   function itemsTotal(){ return doc.items.reduce(function(a,it){ return a+rowW(it); },0); }
-  function netW(){ var g=num(doc.gross), t=num(doc.tare); return (g&&t) ? g-t : itemsTotal(); }
+  function netW(){ return itemsTotal(); }
 
   /* ---------- receipt ---------- */
   function showClient(){ return doc.hasClient!==false && !!String(doc.client||"").trim(); }
   function receiptHTML(copyLabel){
-    var s = store.settings, it, rows="", i, total=itemsTotal(), hasScale = num(doc.gross)&&num(doc.tare);
+    var s = store.settings, it, rows="", i, total=itemsTotal();
     for(i=0;i<doc.items.length;i++){
       it=doc.items[i];
       var w=rowW(it), isAuto = String(it.w).trim()==="" && w;
@@ -466,10 +458,10 @@ input[type=number]{font-variant-numeric:tabular-nums}
       "<div class=\"rc-route\"><div><small>Товарене от</small><b>"+esc(doc.from)+"</b></div><div aria-hidden=\"true\">→</div><div><small>Доставка до</small><b>"+esc(doc.to)+"</b></div></div>"+
       "<table><thead><tr><th style=\"width:7mm\">№</th><th>Артикул</th><th>Клас</th><th>Ø, мм</th><th>Тегло, кг</th></tr></thead>"+
         "<tbody>"+rows+"</tbody>"+
-        "<tfoot><tr><td colspan=\"4\" style=\"text-align:right\">Общо по редове</td><td class=\"n\">"+fmtKg(total)+"</td></tr></tfoot></table>"+
+        "<tfoot><tr><td colspan=\"4\" style=\"text-align:right\">Общо</td><td class=\"n\">"+fmtKg(total)+"</td></tr></tfoot></table>"+
       (anyAuto?"<div style=\"font-size:.78em;color:var(--ink-soft);margin-top:.8mm\">* теоретично тегло</div>":"")+
       "<div class=\"rc-two\">"+
-        "<div class=\"rc-box\"><span>Бруто, кг</span><span>"+fmtKg(num(doc.gross))+"</span><span>Тара, кг</span><span>"+fmtKg(num(doc.tare))+"</span><span>Нето, кг</span><span class=\"big\">"+fmtKg(netW())+(hasScale?"":(netW()?"*":""))+"</span></div>"+
+        "<div class=\"rc-box rc-total\"><span>Общо тегло</span><span class=\"big\">"+(fmtKg(netW())||"—")+" кг</span></div>"+
         "<div class=\"rc-box t\"><span>МПС</span><span><b>"+esc(doc.plate)+"</b></span><span>Ремарке</span><span>"+esc(doc.trailer)+"</span><span>Шофьор</span><span>"+esc(doc.driver)+"</span><span>Превозвач</span><span>"+esc(doc.carrier)+"</span></div>"+
       "</div>"+
       "<div class=\"rc-times\">"+
@@ -494,7 +486,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
     var two = $("copies").value==="2";
     sheet.className = "sheet" + (two?" copies-2":"");
     sheet.innerHTML = two ? receiptHTML("Екземпляр за обекта")+receiptHTML("Екземпляр за склада") : receiptHTML("");
-    $("f-net").value = fmtKg(netW());
+    $("f-total").textContent = fmtKg(netW())||"0";
     $("sample-chip").hidden = !doc.sample;
     fit();
   }
