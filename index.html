@@ -27,6 +27,7 @@
   --accent:#5aa3d6; --accent-ink:#0d1a24; --steel:#c3ccd4; --warn:#f0965a; --field:#242b32; color-scheme:dark}
 
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{background:var(--bg);color:var(--fg)}
 body{font-family:var(--sans);font-size:14px;line-height:1.45}
 .topbar{background:var(--steel);color:var(--bg);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}
@@ -148,6 +149,33 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .rc-total{grid-template-columns:1fr;align-content:center;text-align:center}
 .rc-total span{border:0!important;text-align:center!important}
 .rc-total span.big{font-size:1.9em}
+.of-rows{display:flex;flex-direction:column;gap:8px}
+.of-row{display:grid;grid-template-columns:90px 120px 1fr 1fr 110px 34px;gap:6px;align-items:end;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.of-row .f{font-size:11px}
+.of-row .out{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;padding-bottom:8px}
+.of-row .pair{display:flex;gap:4px;align-items:center}
+.of-x{display:grid;grid-template-columns:1fr 130px 34px;gap:6px;align-items:end}
+.price-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px 8px}
+.price-grid label{font-size:12px}
+@media (max-width:640px){
+  .of-row{grid-template-columns:1fr 1fr 1fr}
+  .of-row .wide{grid-column:span 2}
+  .of-x{grid-template-columns:1fr 110px 40px}
+}
+.of{padding:12mm 13mm;font-size:9.8pt;line-height:1.35;color:var(--ink)}
+.of-meta{margin-top:5mm;display:grid;grid-template-columns:1fr 1fr;gap:8mm}
+.of table{border-collapse:collapse;width:100%;margin-top:5mm}
+.of th,.of td{border:1px solid var(--ink);padding:1.2mm 1.8mm}
+.of th{font-size:.76em;text-transform:uppercase;letter-spacing:.04em;background:#f1f1f1;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.of td.n{text-align:right;font-family:var(--mono);white-space:nowrap}
+.of td.c{text-align:center}
+.of-tot{margin-top:4mm;margin-left:auto;width:85mm;display:grid;grid-template-columns:1fr auto;border:1px solid var(--ink)}
+.of-tot span{padding:1.2mm 2.5mm;border-bottom:1px solid #bbb}
+.of-tot span:nth-child(even){text-align:right;font-family:var(--mono);font-weight:600}
+.of-tot .grand{font-size:1.2em;font-weight:700;border-bottom:0;background:#f1f1f1;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.of-note{margin-top:5mm}
+.of-sign{margin-top:14mm;display:grid;grid-template-columns:1fr 1fr;gap:20mm}
+.of-sign div{border-top:1px solid var(--ink);text-align:center;font-size:.85em;color:var(--ink-soft);padding-top:1mm}
 /* archive */
 .arch{overflow-x:auto}
 .arch table{border-collapse:collapse;width:100%;min-width:640px}
@@ -177,7 +205,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
   @page{size:A4;margin:0}
   html,body{background:#fff!important}
   :root{padding:0!important}
-  .topbar,.form-col,.toolbar,.notice,#view-archive,#view-settings{display:none!important}
+  .topbar,.form-col,.toolbar,.notice,#view-archive,#view-settings,[hidden]{display:none!important}
   main{padding:0!important}
   .bench{display:block}
   .preview-col{position:static}
@@ -192,11 +220,12 @@ input[type=number]{font-variant-numeric:tabular-nums}
 
 <header class="topbar">
   <div class="brand">
-    <img id="top-logo" alt="" style="height:30px;width:auto;background:#fff;border-radius:4px;padding:2px"><svg hidden width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2"><line x1="3" y1="8" x2="23" y2="8"/><line x1="3" y1="18" x2="23" y2="18"/></g><g stroke="currentColor" stroke-width="1.2"><line x1="6" y1="5.5" x2="8" y2="10.5"/><line x1="11" y1="5.5" x2="13" y2="10.5"/><line x1="16" y1="5.5" x2="18" y2="10.5"/><line x1="6" y1="15.5" x2="8" y2="20.5"/><line x1="11" y1="15.5" x2="13" y2="20.5"/><line x1="16" y1="15.5" x2="18" y2="20.5"/></g></svg>
-    <span>Стил Форс · Експедиция</span>
+    <img id="top-logo" alt="" style="height:30px;width:auto;background:#fff;border-radius:4px;padding:2px">
+    <span>Стил Форс</span>
   </div>
   <nav class="tabs" role="tablist">
     <button class="tab" role="tab" id="tab-new" data-view="new" aria-selected="true">Бележка</button>
+    <button class="tab" role="tab" id="tab-offer" data-view="offer" aria-selected="false">ТП калкулатор</button>
     <button class="tab" role="tab" id="tab-archive" data-view="archive" aria-selected="false">Архив</button>
     <button class="tab" role="tab" id="tab-settings" data-view="settings" aria-selected="false">Настройки</button>
   </nav>
@@ -299,6 +328,63 @@ input[type=number]{font-variant-numeric:tabular-nums}
   </section>
 
   <!-- ============ ARCHIVE ============ -->
+  <section id="view-offer" hidden>
+    <div class="toolbar">
+      <button class="btn primary" id="of-share" type="button">Изпрати PDF</button>
+      <button class="btn" id="of-print" type="button">Печат</button>
+      <button class="btn" id="of-new" type="button">Ново ТП</button>
+      <button class="btn" id="of-to-note" type="button">Направи бележка</button>
+      <span class="spacer"></span>
+      <span class="status" id="of-status"></span>
+    </div>
+    <div class="bench">
+      <div class="panel form-col">
+        <form class="form" id="of-form" autocomplete="off">
+          <fieldset>
+            <legend>Търговско предложение</legend>
+            <div class="grid">
+              <label class="f">Номер<input id="o-no" data-o="no"></label>
+              <label class="f">Дата<input id="o-date" type="date" data-o="date"></label>
+              <label class="f">Валидна (дни)<input id="o-valid" type="number" min="1" step="1" data-o="valid"></label>
+            </div>
+            <div class="grid">
+              <label class="f">Клиент<input id="o-client" data-o="client" list="dl-clients"></label>
+              <label class="f">Телефон / контакт<input id="o-contact" data-o="contact"></label>
+            </div>
+            <label class="f">Обект / доставка до<input id="o-site" data-o="site" list="dl-sites"></label>
+          </fieldset>
+          <div class="sep"></div>
+          <fieldset>
+            <legend>Арматура</legend>
+            <div id="of-rows" class="of-rows"></div>
+            <div class="row"><button class="btn small" type="button" id="of-add">+ Добави диаметър</button><span class="spacer" style="flex:1"></span><b>Тегло: <span id="of-wt">0</span> кг</b></div>
+            <span class="hint">Количеството е в килограми или в брой пръти × дължина. Теглото на пръта се смята по Ø² × 0,00617 кг/м.</span>
+          </fieldset>
+          <div class="sep"></div>
+          <fieldset>
+            <legend>Услуги и отстъпка</legend>
+            <div id="of-extras" class="of-rows"></div>
+            <div class="row"><button class="btn small" type="button" id="of-add-extra">+ Добави услуга</button></div>
+            <div class="grid">
+              <label class="f">Отстъпка, %<input id="o-discount" type="number" min="0" max="100" step="0.5" data-o="discount"></label>
+              <label class="chk" style="align-self:end"><input type="checkbox" id="o-vat"> Начисли ДДС 20%</label>
+            </div>
+            <label class="f">Бележка към предложението<textarea id="o-note" data-o="note"></textarea></label>
+          </fieldset>
+          <div class="sep"></div>
+          <fieldset>
+            <legend>Ценоразпис, € за тон без ДДС <span id="of-prices-chip" class="chip" hidden>примерни цени</span></legend>
+            <div class="price-grid" id="of-prices"></div>
+            <span class="hint">Цените се пазят и се ползват за всяко ново ТП. В реда цената може да се смени ръчно.</span>
+          </fieldset>
+        </form>
+      </div>
+      <div class="preview-col">
+        <div class="preview-wrap" id="of-wrap"><div class="sheet" id="of-sheet"></div></div>
+      </div>
+    </div>
+  </section>
+
   <section id="view-archive" hidden>
     <div class="panel">
       <div class="toolbar"><b>Запазени бележки</b><span class="spacer"></span><input id="arch-q" placeholder="Търсене: клиент, МПС, номер…" style="max-width:280px"></div>
@@ -681,11 +767,154 @@ input[type=number]{font-variant-numeric:tabular-nums}
   });
   $("s-logo-del").addEventListener("click", function(){ store.settings.logo=""; persist(); fillSettings(); renderPreview(); });
 
+
+  /* ---------- offer calculator ---------- */
+  var DIAMS=[6,8,10,12,14,16,18,20,22,25,28,32];
+  var SAMPLE_PRICES={6:980,8:950,10:920,12:900,14:900,16:900,18:900,20:900,22:910,25:910,28:920,32:920};
+  if(!store.prices){ store.prices=Object.assign({},SAMPLE_PRICES); store.pricesSample=true; }
+  if(!store.settings.offerNo) store.settings.offerNo=1;
+  function kgm(d){ return num(d)*num(d)*0.00617; }
+  function money(n){ return (Math.round(n*100)/100).toLocaleString("bg-BG",{minimumFractionDigits:2,maximumFractionDigits:2})+" €"; }
+  function offerNo(n){ return "ТП-"+String(n).padStart(6,"0"); }
+  function blankOffer(){ return {no:offerNo(store.settings.offerNo), date:todayISO(), valid:"7", client:"", contact:"", site:"",
+    rows:[{d:"12",mode:"kg",kg:"",pcs:"",len:"12",price:""}], extras:[{name:"Доставка",amount:""}], discount:"", vat:true, note:""}; }
+  function sampleOffer(){ var o=blankOffer(); o.sample=true; o.client="Иван Петров (пример)"; o.site="с. Лозен, къща";
+    o.rows=[{d:"10",mode:"pcs",kg:"",pcs:"60",len:"12",price:""},{d:"12",mode:"kg",kg:"1500",pcs:"",len:"12",price:""},{d:"8",mode:"kg",kg:"300",pcs:"",len:"",price:""}];
+    o.extras=[{name:"Доставка",amount:"120"},{name:"Рязане и огъване",amount:"80"}]; return o; }
+  var offer = store.offer || sampleOffer();
+  if(/^ОФ-/.test(offer.no)) offer.no=offer.no.replace(/^ОФ-/,"ТП-");
+  function rowWt(r){ return r.mode==="pcs" ? num(r.pcs)*num(r.len)*kgm(r.d) : num(r.kg); }
+  function rowPrice(r){ return String(r.price).trim()!=="" ? num(r.price) : num(store.prices[r.d]); }
+  function calc(){
+    var wt=0, goods=0;
+    offer.rows.forEach(function(r){ var w=rowWt(r); wt+=w; goods+=w/1000*rowPrice(r); });
+    var extras=offer.extras.reduce(function(a,x){ return a+num(x.amount); },0);
+    var sub=goods+extras, disc=goods*num(offer.discount)/100, net=sub-disc, vat=offer.vat?net*0.2:0;
+    return {wt:wt,goods:goods,extras:extras,disc:disc,net:net,vat:vat,total:net+vat};
+  }
+  function saveOffer(){ store.offer=offer; clearTimeout(saveOffer.t); saveOffer.t=setTimeout(persist,400); }
+  function renderOfferRows(){
+    var dOpts=function(sel){ return DIAMS.map(function(d){ return "<option value=\""+d+"\""+(String(d)===String(sel)?" selected":"")+">Ø "+d+"</option>"; }).join(""); };
+    $("of-rows").innerHTML = offer.rows.map(function(r,i){
+      return "<div class=\"of-row\" data-i=\""+i+"\">"+
+        "<label class=\"f\">Диаметър<select data-r=\"d\">"+dOpts(r.d)+"</select></label>"+
+        "<label class=\"f\">Количество в<select data-r=\"mode\"><option value=\"kg\""+(r.mode==="kg"?" selected":"")+">кг</option><option value=\"pcs\""+(r.mode==="pcs"?" selected":"")+">бр. пръти</option></select></label>"+
+        (r.mode==="pcs"
+          ? "<label class=\"f\">Брой<input data-r=\"pcs\" inputmode=\"numeric\" value=\""+esc(r.pcs)+"\"></label><label class=\"f\">Дължина, м<input data-r=\"len\" inputmode=\"decimal\" value=\""+esc(r.len)+"\"></label>"
+          : "<label class=\"f wide\">Килограми<input data-r=\"kg\" inputmode=\"decimal\" value=\""+esc(r.kg)+"\"></label><span class=\"out\" data-out=\"kgm\"></span>")+
+        "<label class=\"f\">Цена €/т<input data-r=\"price\" inputmode=\"decimal\" value=\""+esc(r.price)+"\" placeholder=\""+esc(store.prices[r.d]||"")+"\"></label>"+
+        "<button type=\"button\" class=\"del\" data-rdel=\""+i+"\" aria-label=\"Изтрий\">×</button></div>";
+    }).join("");
+    $("of-extras").innerHTML = offer.extras.map(function(x,i){
+      return "<div class=\"of-x\" data-x=\""+i+"\"><label class=\"f\">Услуга<input data-xf=\"name\" value=\""+esc(x.name)+"\"></label><label class=\"f\">Сума, €<input data-xf=\"amount\" inputmode=\"decimal\" value=\""+esc(x.amount)+"\"></label><button type=\"button\" class=\"del\" data-xdel=\""+i+"\" aria-label=\"Изтрий\">×</button></div>";
+    }).join("");
+  }
+  function renderPrices(){
+    $("of-prices").innerHTML = DIAMS.map(function(d){ return "<label class=\"f\">Ø "+d+" мм<input data-p=\""+d+"\" inputmode=\"decimal\" value=\""+esc(store.prices[d]==null?"":store.prices[d])+"\"></label>"; }).join("");
+    $("of-prices-chip").hidden = !store.pricesSample;
+  }
+  function offerHTML(){
+    var s=store.settings, c=calc(), until="";
+    if(offer.date && num(offer.valid)){ var dt=new Date(offer.date+"T12:00:00"); dt.setDate(dt.getDate()+num(offer.valid)); until=pad(dt.getDate())+"."+pad(dt.getMonth()+1)+"."+dt.getFullYear()+" г."; }
+    var rows=offer.rows.map(function(r,i){ var w=rowWt(r), p=rowPrice(r);
+      var q = r.mode==="pcs" ? esc(r.pcs||0)+" бр × "+esc(fmtNum(r.len||0))+" м" : fmtKg(num(r.kg))+" кг";
+      return "<tr><td class=\"c\">"+(i+1)+"</td><td>Арматура B500B</td><td class=\"c\">"+esc(r.d)+"</td><td class=\"n\">"+q+"</td><td class=\"n\">"+fmtKg(w)+"</td><td class=\"n\">"+money(p)+"</td><td class=\"n\">"+money(w/1000*p)+"</td></tr>"; }).join("");
+    var n=offer.rows.length;
+    offer.extras.forEach(function(x){ if(String(x.name).trim()||num(x.amount)){ n++; rows+="<tr><td class=\"c\">"+n+"</td><td colspan=\"5\">"+esc(x.name)+"</td><td class=\"n\">"+money(num(x.amount))+"</td></tr>"; } });
+    return "<div class=\"of\">"+
+      "<div class=\"rc-head\"><div class=\"rc-co\"><img class=\"rc-logo\" src=\""+logoSrc()+"\" alt=\"\"><div><b>"+esc(s.company)+"</b>"+(s.eik?"<div>ЕИК "+esc(s.eik)+"</div>":"")+"<div>"+esc(s.address)+"</div>"+(s.phone?"<div>тел. "+esc(s.phone)+"</div>":"")+"</div></div>"+
+      "<div class=\"rc-doc\"><div class=\"rc-title\">Търговско предложение</div><div class=\"rc-kv\"><span>№</span><span>"+esc(offer.no)+"</span><span>Дата</span><span>"+esc(fmtDate(offer.date))+"</span>"+(until?"<span>Валидна до</span><span>"+until+"</span>":"")+"</div></div></div>"+
+      "<div class=\"of-meta\"><div><div class=\"rc-lbl\">Клиент</div><b>"+esc(offer.client)+"</b><div>"+esc(offer.contact)+"</div></div><div><div class=\"rc-lbl\">Обект / доставка до</div><b>"+esc(offer.site)+"</b></div></div>"+
+      "<table><thead><tr><th style=\"width:7mm\">№</th><th>Артикул</th><th>Ø, мм</th><th>Количество</th><th>Тегло, кг</th><th>Цена, €/т</th><th>Сума, €</th></tr></thead><tbody>"+rows+"</tbody></table>"+
+      "<div class=\"of-tot\"><span>Общо тегло</span><span>"+fmtKg(c.wt)+" кг</span>"+
+        (c.disc?"<span>Отстъпка "+esc(fmtNum(offer.discount))+"% (арматура)</span><span>−"+money(c.disc)+"</span>":"")+
+        "<span>Сума без ДДС</span><span>"+money(c.net)+"</span>"+
+        (offer.vat?"<span>ДДС 20%</span><span>"+money(c.vat)+"</span>":"")+
+        "<span class=\"grand\">"+(offer.vat?"Общо с ДДС":"Общо")+"</span><span class=\"grand\">"+money(c.total)+"</span></div>"+
+      (offer.note?"<div class=\"of-note\"><b>Бележка:</b> "+esc(offer.note)+"</div>":"")+
+      "<div class=\"of-note hint\" style=\"color:var(--ink-soft)\">Теглото при брой пръти е теоретично. Окончателното тегло се определя при товарене.</div>"+
+      "<div class=\"of-sign\"><div>Изготвил</div><div>Клиент</div></div>"+
+    "</div>";
+  }
+  var ofSheet=$("of-sheet"), ofWrap=$("of-wrap");
+  function fitOffer(){ var w=ofWrap.clientWidth, sw=ofSheet.offsetWidth; if(!sw) return; var k=Math.min(1,w/sw); ofSheet.style.transform="scale("+k+")"; ofWrap.style.height=(ofSheet.offsetHeight*k)+"px"; }
+  if(window.ResizeObserver){ new ResizeObserver(fitOffer).observe(ofWrap); }
+  function renderOfferPreview(){
+    ofSheet.innerHTML=offerHTML(); var c=calc(); $("of-wt").textContent=fmtKg(c.wt)||"0";
+    document.querySelectorAll("#of-rows .of-row").forEach(function(el){ var r=offer.rows[+el.dataset.i], o=el.querySelector("[data-out]"); if(o) o.textContent=kgm(r.d).toFixed(3).replace(".",",")+" кг/м"; });
+    fitOffer();
+  }
+  function renderOffer(){
+    document.querySelectorAll("#of-form [data-o]").forEach(function(el){ el.value = offer[el.dataset.o]==null?"":offer[el.dataset.o]; });
+    $("o-vat").checked=!!offer.vat; renderOfferRows(); renderPrices(); renderOfferPreview();
+  }
+  function offerChanged(){ offer.sample=false; saveOffer(); renderOfferPreview(); }
+  $("of-form").addEventListener("submit",function(e){ e.preventDefault(); });
+  $("of-form").addEventListener("input",function(e){
+    var el=e.target, row;
+    if(el.dataset.o){ offer[el.dataset.o]=el.value; offerChanged(); }
+    else if(el.dataset.r && (row=el.closest("[data-i]"))){ var r=offer.rows[+row.dataset.i]; r[el.dataset.r]=el.value; if(el.dataset.r==="d"||el.dataset.r==="mode"){ if(el.dataset.r==="mode"&&el.value==="pcs"&&!r.len) r.len="12"; renderOfferRows(); } offerChanged(); }
+    else if(el.dataset.xf && (row=el.closest("[data-x]"))){ offer.extras[+row.dataset.x][el.dataset.xf]=el.value; offerChanged(); }
+    else if(el.dataset.p){ store.prices[el.dataset.p]=el.value; store.pricesSample=false; $("of-prices-chip").hidden=true; persist(); renderOfferRows(); renderOfferPreview(); }
+  });
+  $("of-form").addEventListener("change",function(e){ if(e.target.id==="o-vat"){ offer.vat=e.target.checked; offerChanged(); } else if(e.target.dataset.r==="d"||e.target.dataset.r==="mode"){ /* handled on input */ } });
+  $("of-form").addEventListener("click",function(e){
+    var b=e.target.closest("[data-rdel],[data-xdel]"); if(!b) return;
+    if(b.dataset.rdel!=null){ offer.rows.splice(+b.dataset.rdel,1); if(!offer.rows.length) offer.rows.push({d:"12",mode:"kg",kg:"",pcs:"",len:"12",price:""}); }
+    else { offer.extras.splice(+b.dataset.xdel,1); }
+    renderOfferRows(); offerChanged();
+  });
+  $("of-add").addEventListener("click",function(){ var last=offer.rows[offer.rows.length-1]||{}; var i=DIAMS.indexOf(+last.d); offer.rows.push({d:String(DIAMS[Math.min(DIAMS.length-1,i+1)]||12),mode:last.mode||"kg",kg:"",pcs:"",len:last.len||"12",price:""}); renderOfferRows(); offerChanged(); });
+  $("of-add-extra").addEventListener("click",function(){ offer.extras.push({name:"",amount:""}); renderOfferRows(); offerChanged(); var ins=document.querySelectorAll("#of-extras [data-xf=name]"); ins[ins.length-1].focus(); });
+  function ofFlash(t){ $("of-status").textContent=t; clearTimeout(ofFlash.t); ofFlash.t=setTimeout(function(){ $("of-status").textContent=""; },3000); }
+  $("of-new").addEventListener("click",function(){ if(!offer.sample && offer.no===offerNo(store.settings.offerNo)) store.settings.offerNo++; offer=blankOffer(); saveOffer(); persist(); renderOffer(); ofFlash("Ново ТП "+offer.no); });
+  $("of-print").addEventListener("click",function(){ bumpOfferNo(); try{ window.print(); }catch(e){} });
+  function bumpOfferNo(){ if(!offer.sample && offer.no===offerNo(store.settings.offerNo)){ store.settings.offerNo++; persist(); } }
+  $("of-share").addEventListener("click", function(){
+    var btn=this;
+    btn.disabled=true; ofFlash("Създавам PDF…");
+    loadH2P().then(function(){ makePdf(btn); }, function(){ btn.disabled=false; ofFlash("Няма връзка за създаване на PDF. Ползвайте „Печат“ → „Запази като PDF“."); });
+  });
+  var H2P_SRC="html2pdf.bundle.min.js";
+  function loadH2P(){
+    if(window.html2pdf) return Promise.resolve();
+    return new Promise(function(ok,fail){ var sc=document.createElement("script"); sc.src=H2P_SRC; sc.onload=ok; sc.onerror=fail; document.head.appendChild(sc); });
+  }
+  function makePdf(btn){
+    var host=document.createElement("div");
+    host.style.cssText="position:fixed;left:-10000px;top:0;width:210mm;background:#fff;color:#111";
+    host.innerHTML="<div class=\"sheet\" style=\"transform:none;min-height:0\">"+offerHTML()+"</div>";
+    document.body.appendChild(host);
+    var name=(offer.no+(offer.client?" "+offer.client:"")).replace(/[\\\/:*?"<>|]+/g,"").trim()+".pdf";
+    html2pdf().set({margin:0, filename:name, image:{type:"jpeg",quality:0.95}, html2canvas:{scale:2,backgroundColor:"#ffffff"}, jsPDF:{unit:"mm",format:"a4",orientation:"portrait"}})
+      .from(host.firstChild).outputPdf("blob").then(function(blob){
+        bumpOfferNo();
+        var file=new File([blob],name,{type:"application/pdf"});
+        if(navigator.canShare && navigator.canShare({files:[file]})){
+          return navigator.share({files:[file],title:name}).then(function(){ ofFlash("Изпратено"); }, function(){ ofFlash(""); });
+        }
+        var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click();
+        setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },4000);
+        ofFlash("PDF е изтеглен: "+name);
+      }).catch(function(){ ofFlash("PDF не се създаде. Ползвайте „Печат“ → „Запази като PDF“."); })
+      .then(function(){ host.remove(); btn.disabled=false; });
+  }
+
+  $("of-to-note").addEventListener("click",function(){
+    var d=blankDoc();
+    d.items=offer.rows.filter(function(r){ return rowWt(r)>0; }).map(function(r){ return {name:"Арматура B500B",grade:"B500B",d:String(r.d),w:String(Math.round(rowWt(r)))}; });
+    if(!d.items.length) d.items=[{name:"Арматура B500B",grade:"B500B",d:"",w:""}];
+    d.site=offer.site||""; if(String(offer.client).trim()){ d.hasClient=true; d.client=offer.client; var ci=findClient(offer.client); if(ci>=0){ d.clientEik=store.clients[ci].eik; d.clientAddr=store.clients[ci].addr; } }
+    d.note = "По ТП "+offer.no;
+    doc=d; store.draft=doc; persist(); fillForm(); show("new"); flash("Бележката е попълнена от "+offer.no);
+  });
+
   /* ---------- views ---------- */
   function show(v){
-    ["new","archive","settings"].forEach(function(n){ $("view-"+n).hidden = n!==v; $("tab-"+n).setAttribute("aria-selected", n===v?"true":"false"); });
+    ["new","offer","archive","settings"].forEach(function(n){ $("view-"+n).hidden = n!==v; $("tab-"+n).setAttribute("aria-selected", n===v?"true":"false"); });
     if(v==="archive") renderArchive();
     if(v==="new") fit();
+    if(v==="offer") renderOffer();
   }
   document.querySelectorAll(".tab").forEach(function(t){ t.addEventListener("click", function(){ show(t.dataset.view); }); });
 
