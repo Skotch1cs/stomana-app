@@ -53,7 +53,7 @@ textarea{resize:vertical;min-height:54px}
 input[type=number]{font-variant-numeric:tabular-nums}
 
 .items{overflow-x:auto}
-.items table{border-collapse:collapse;width:100%;min-width:620px}
+.items table{border-collapse:collapse;width:100%;min-width:420px}
 .items th{font-size:11px;font-weight:600;color:var(--muted);text-align:left;padding:0 4px 4px}
 .items td{padding:2px}
 .items input{padding:6px 7px}
@@ -254,12 +254,12 @@ input[type=number]{font-variant-numeric:tabular-nums}
             <legend>Стока</legend>
             <div class="items">
               <table>
-                <thead><tr><th>Артикул</th><th>Клас</th><th>Ø мм</th><th>Дълж. м</th><th>Брой</th><th>Тегло кг</th><th></th></tr></thead>
+                <thead><tr><th>Артикул</th><th>Клас</th><th>Ø мм</th><th>Тегло кг</th><th></th></tr></thead>
                 <tbody id="items-body"></tbody>
               </table>
             </div>
             <div class="row"><button class="btn small" type="button" id="btn-add-row">+ Добави ред</button>
-              <span class="hint">Ако теглото е празно, се смята теоретично: Ø² × 0,00617 × дължина × брой.</span></div>
+</div>
           </fieldset>
           <div class="sep"></div>
           <fieldset>
@@ -408,11 +408,11 @@ input[type=number]{font-variant-numeric:tabular-nums}
     d.hasClient=true; d.client="Монолит Груп ЕООД"; d.clientEik="203456789"; d.clientAddr="гр. София, ул. Примерна 1";
     d.site="Жилищна сграда, ж.к. Суходол"; d.to="гр. София, ж.к. Суходол, УПИ 12";
     d.items=[
-      {name:"Арматура B500B",grade:"B500B",d:"12",len:"12",qty:"150",w:""},
-      {name:"Арматура B500B",grade:"B500B",d:"16",len:"12",qty:"80",w:""},
-      {name:"Стремена",grade:"B500B",d:"8",len:"",qty:"400",w:"190"}
+      {name:"Арматура B500B",grade:"B500B",d:"12",w:"1600"},
+      {name:"Арматура B500B",grade:"B500B",d:"16",w:"1520"},
+      {name:"Стремена",grade:"B500B",d:"8",w:"190"}
     ];
-    d.gross="18640"; d.tare="14850";
+    d.gross="18640"; d.tare="15330";
     d.plate="СВ 9047 МЕ"; d.driver="Арам Петров"; d.carrier="Собствен транспорт";
     d.issuer="Иван Иванов";
     return d;
@@ -434,7 +434,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
   var doc = store.draft || sampleDoc();
 
   /* ---------- weights ---------- */
-  function autoW(it){ var d=num(it.d), l=num(it.len), q=num(it.qty); return (d&&l&&q) ? d*d*0.00617*l*q : 0; }
+  function autoW(it){ return 0; }
   function rowW(it){ return String(it.w).trim()!=="" ? num(it.w) : autoW(it); }
   function itemsTotal(){ return doc.items.reduce(function(a,it){ return a+rowW(it); },0); }
   function netW(){ var g=num(doc.gross), t=num(doc.tare); return (g&&t) ? g-t : itemsTotal(); }
@@ -446,7 +446,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
     for(i=0;i<doc.items.length;i++){
       it=doc.items[i];
       var w=rowW(it), isAuto = String(it.w).trim()==="" && w;
-      rows += "<tr><td class=\"c\">"+(i+1)+"</td><td>"+esc(it.name)+"</td><td class=\"c\">"+esc(it.grade)+"</td><td class=\"c\">"+esc(it.d)+"</td><td class=\"n\">"+esc(fmtNum(it.len))+"</td><td class=\"n\">"+esc(it.qty)+"</td><td class=\"n\">"+fmtKg(w)+(isAuto?"*":"")+"</td></tr>";
+      rows += "<tr><td class=\"c\">"+(i+1)+"</td><td>"+esc(it.name)+"</td><td class=\"c\">"+esc(it.grade)+"</td><td class=\"c\">"+esc(it.d)+"</td><td class=\"n\">"+fmtKg(w)+(isAuto?"*":"")+"</td></tr>";
     }
     var anyAuto = doc.items.some(function(x){ return String(x.w).trim()==="" && autoW(x); });
     return ""+
@@ -464,9 +464,9 @@ input[type=number]{font-variant-numeric:tabular-nums}
         "<div><div class=\"rc-lbl\">Обект</div><b>"+esc(doc.site)+"</b></div>"+
       "</div>"+
       "<div class=\"rc-route\"><div><small>Товарене от</small><b>"+esc(doc.from)+"</b></div><div aria-hidden=\"true\">→</div><div><small>Доставка до</small><b>"+esc(doc.to)+"</b></div></div>"+
-      "<table><thead><tr><th style=\"width:7mm\">№</th><th>Артикул</th><th>Клас</th><th>Ø, мм</th><th>Дълж., м</th><th>Брой</th><th>Тегло, кг</th></tr></thead>"+
+      "<table><thead><tr><th style=\"width:7mm\">№</th><th>Артикул</th><th>Клас</th><th>Ø, мм</th><th>Тегло, кг</th></tr></thead>"+
         "<tbody>"+rows+"</tbody>"+
-        "<tfoot><tr><td colspan=\"6\" style=\"text-align:right\">Общо по редове</td><td class=\"n\">"+fmtKg(total)+"</td></tr></tfoot></table>"+
+        "<tfoot><tr><td colspan=\"4\" style=\"text-align:right\">Общо по редове</td><td class=\"n\">"+fmtKg(total)+"</td></tr></tfoot></table>"+
       (anyAuto?"<div style=\"font-size:.78em;color:var(--ink-soft);margin-top:.8mm\">* теоретично тегло</div>":"")+
       "<div class=\"rc-two\">"+
         "<div class=\"rc-box\"><span>Бруто, кг</span><span>"+fmtKg(num(doc.gross))+"</span><span>Тара, кг</span><span>"+fmtKg(num(doc.tare))+"</span><span>Нето, кг</span><span class=\"big\">"+fmtKg(netW())+(hasScale?"":(netW()?"*":""))+"</span></div>"+
@@ -538,9 +538,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
         "<td data-label=\"Артикул\"><input data-row=\""+i+"\" data-f=\"name\" list=\"dl-products\" value=\""+esc(it.name)+"\" aria-label=\"Артикул\"></td>"+
         "<td data-label=\"Клас\"><input class=\"d\" data-row=\""+i+"\" data-f=\"grade\" style=\"width:78px\" list=\"dl-grades\" value=\""+esc(it.grade)+"\" aria-label=\"Клас\"></td>"+
         "<td data-label=\"Ø мм\"><input class=\"d\" data-row=\""+i+"\" data-f=\"d\" list=\"dl-d\" inputmode=\"numeric\" value=\""+esc(it.d)+"\" aria-label=\"Диаметър\"></td>"+
-        "<td data-label=\"Дължина м\"><input class=\"num\" data-row=\""+i+"\" data-f=\"len\" inputmode=\"decimal\" value=\""+esc(it.len)+"\" aria-label=\"Дължина\"></td>"+
-        "<td data-label=\"Брой\"><input class=\"num\" data-row=\""+i+"\" data-f=\"qty\" inputmode=\"numeric\" value=\""+esc(it.qty)+"\" aria-label=\"Брой\"></td>"+
-        "<td data-label=\"Тегло кг\"><input class=\"num\" data-row=\""+i+"\" data-f=\"w\" inputmode=\"decimal\" value=\""+esc(it.w)+"\" placeholder=\""+(autoW(it)?Math.round(autoW(it)):"")+"\" aria-label=\"Тегло\"></td>"+
+        "<td data-label=\"Тегло кг\"><input class=\"num\" style=\"width:110px\" data-row=\""+i+"\" data-f=\"w\" inputmode=\"decimal\" value=\""+esc(it.w)+"\" placeholder=\""+(autoW(it)?Math.round(autoW(it)):"")+"\" aria-label=\"Тегло\"></td>"+
         "<td><button type=\"button\" class=\"del\" data-del=\""+i+"\" aria-label=\"Изтрий реда\">×</button></td></tr>";
     }).join("");
   }
