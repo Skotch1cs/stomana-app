@@ -98,7 +98,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .rc-parties{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:5mm}
 .copies-2 .rc-parties{margin-top:3mm}
 .rc-lbl{font-size:.78em;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--ink);padding-bottom:.6mm;margin-bottom:1mm}
-.rc-route{margin-top:3mm;display:grid;grid-template-columns:1fr auto 1fr;gap:3mm;align-items:center;border:1px solid var(--ink);padding:1.6mm 3mm}
+.rc-route{margin-top:4mm;display:grid;grid-template-columns:1fr auto 1fr;gap:3mm;align-items:center;border:1px solid var(--ink);padding:1.6mm 3mm}
 .rc-route small{display:block;font-size:.78em;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.05em}
 .rc table{border-collapse:collapse;width:100%;margin-top:3mm}
 .copies-2 .rc table{margin-top:2mm}
@@ -235,12 +235,9 @@ input[type=number]{font-variant-numeric:tabular-nums}
           </fieldset>
           <div class="sep"></div>
           <fieldset>
-            <legend>Обект и получател</legend>
-            <label class="f">Обект (строеж)<input id="f-site" data-k="site" list="dl-sites"></label>
-            <div class="grid">
-              <label class="f">Товарене от<input id="f-from" data-k="from"></label>
-              <label class="f">Доставка до<input id="f-to" data-k="to" list="dl-to"></label>
-            </div>
+            <legend>Маршрут и получател</legend>
+            <label class="f">Доставка до обект (име / адрес)<input id="f-site" data-k="site" list="dl-sites"></label>
+            <label class="f">Товарене от<input id="f-from" data-k="from"></label>
             <label class="chk"><input type="checkbox" id="f-hasClient"> Посочи фирма получател на бележката</label>
             <div id="client-box" class="client-box" hidden>
               <label class="f">Запомнени фирми<select id="client-pick"></select></label>
@@ -399,7 +396,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
     var d = blankDoc();
     d.sample = true;
     d.hasClient=true; d.client="Монолит Груп ЕООД"; d.clientEik="203456789"; d.clientAddr="гр. София, ул. Примерна 1";
-    d.site="Жилищна сграда, ж.к. Суходол"; d.to="гр. София, ж.к. Суходол, УПИ 12";
+    d.site="Жилищна сграда, ж.к. Суходол, УПИ 12, гр. София"; d.to="";
     d.items=[
       {name:"Арматура B500B",grade:"B500B",d:"12",w:"1600"},
       {name:"Арматура B500B",grade:"B500B",d:"16",w:"1520"},
@@ -451,11 +448,8 @@ input[type=number]{font-variant-numeric:tabular-nums}
           (copyLabel?"<div class=\"rc-copy\">"+copyLabel+"</div>":"")+
         "</div>"+
       "</div>"+
-      (showClient()?"<div class=\"rc-parties\">":"<div class=\"rc-parties one\">")+
-        (showClient()?"<div><div class=\"rc-lbl\">Получател</div><b>"+esc(doc.client)+"</b>"+(doc.clientEik?"<div>ЕИК / ЕГН "+esc(doc.clientEik)+"</div>":"")+"<div>"+esc(doc.clientAddr)+"</div></div>":"")+
-        "<div><div class=\"rc-lbl\">Обект</div><b>"+esc(doc.site)+"</b></div>"+
-      "</div>"+
-      "<div class=\"rc-route\"><div><small>Товарене от</small><b>"+esc(doc.from)+"</b></div><div aria-hidden=\"true\">→</div><div><small>Доставка до</small><b>"+esc(doc.to)+"</b></div></div>"+
+      (showClient()?"<div class=\"rc-parties one\"><div><div class=\"rc-lbl\">Получател</div><b>"+esc(doc.client)+"</b>"+(doc.clientEik?" · ЕИК / ЕГН "+esc(doc.clientEik):"")+(doc.clientAddr?" · "+esc(doc.clientAddr):"")+"</div></div>":"")+
+      "<div class=\"rc-route\"><div><small>Товарене от</small><b>"+esc(doc.from)+"</b></div><div aria-hidden=\"true\">→</div><div><small>Доставка до обект</small><b>"+esc(doc.site||doc.to)+"</b></div></div>"+
       "<table><thead><tr><th style=\"width:7mm\">№</th><th>Артикул</th><th>Клас</th><th>Ø, мм</th><th>Тегло, кг</th></tr></thead>"+
         "<tbody>"+rows+"</tbody>"+
         "<tfoot><tr><td colspan=\"4\" style=\"text-align:right\">Общо</td><td class=\"n\">"+fmtKg(total)+"</td></tr></tfoot></table>"+
