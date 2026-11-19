@@ -191,7 +191,8 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .cut-plan .warn{color:var(--warn)}
 .of h5{margin:5mm 0 0;font-size:.8em;text-transform:uppercase;letter-spacing:.06em}
 .of h5 + table{margin-top:1.5mm}
-.of-cutsum{margin-top:2mm;font-size:.92em;color:var(--ink-soft)}
+.of td .det{font-size:.82em;color:var(--ink-soft);margin-top:.5mm}
+.of-fine{margin-top:6mm;font-size:.72em;color:var(--ink-soft)}
 /* archive */
 .arch{overflow-x:auto}
 .arch table{border-collapse:collapse;width:100%;min-width:640px}
@@ -374,7 +375,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
             <legend>Арматура</legend>
             <div id="of-rows" class="of-rows"></div>
             <div class="row"><button class="btn small" type="button" id="of-add">+ Добави диаметър</button></div>
-            <span class="hint">Въведете общата дължина в метри, кг или брой детайли × дължина. Цената е в € за тон без ДДС.</span>
+            <span class="hint">Въведете общата дължина в метри, кг или брой детайли × дължина. Цената е в € за килограм без ДДС.</span>
             <label class="chk"><input type="checkbox" id="o-cut"> Смятай по цели пръти (разкрой с остатъците)</label>
             <div id="cut-box" class="client-box" hidden>
               <label class="f" style="max-width:180px">Дължина на пръта, м<input id="o-stock" inputmode="decimal" data-o="stock"></label>
@@ -401,7 +402,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
           </fieldset>
           <div class="sep"></div>
           <fieldset>
-            <legend>Ценоразпис, € за тон без ДДС <span id="of-prices-chip" class="chip" hidden>примерни цени</span></legend>
+            <legend>Ценоразпис, € за кг без ДДС <span id="of-prices-chip" class="chip" hidden>примерни цени</span></legend>
             <div class="price-grid" id="of-prices"></div>
             <span class="hint">Цените се пазят и се ползват за всяка нова оферта. В реда цената може да се смени ръчно.</span>
           </fieldset>
@@ -806,12 +807,17 @@ input[type=number]{font-variant-numeric:tabular-nums}
   var DIAMS=[6,8,10,12,14,16,18,20,22,25,28,32,36,40];
   /* nominal mass per metre, kg/m (EN 10080 / БДС) */
   var KGM={6:0.222,8:0.395,10:0.617,12:0.888,14:1.21,16:1.58,18:2.0,20:2.47,22:2.98,25:3.85,28:4.83,32:6.31,36:7.99,40:9.87};
-  var SAMPLE_PRICES={6:980,8:950,10:920,12:900,14:900,16:900,18:900,20:900,22:910,25:910,28:920,32:920,36:930,40:930};
-  if(!store.prices){ store.prices=Object.assign({},SAMPLE_PRICES); store.pricesSample=true; }
+  var SAMPLE_PRICES={6:0.98,8:0.95,10:0.92,12:0.9,14:0.9,16:0.9,18:0.9,20:0.9,22:0.91,25:0.91,28:0.92,32:0.92,36:0.93,40:0.93};
+  if(!store.prices){ store.prices=Object.assign({},SAMPLE_PRICES); store.pricesSample=true; store.priceUnit="kg"; }
+  /* prices used to be per tonne; they are per kg now */
+  function perKg(v){ var x=num(v); return x>20 ? String(Math.round(x)/1000) : v; }
+  var pricesWerePerTon = store.priceUnit!=="kg";
+  if(pricesWerePerTon){ Object.keys(store.prices).forEach(function(d){ store.prices[d]=perKg(store.prices[d]); }); store.priceUnit="kg"; }
   if(store.pricesSample){ DIAMS.forEach(function(d){ if(store.prices[d]==null) store.prices[d]=SAMPLE_PRICES[d]; }); }
   if(!store.settings.offerNo) store.settings.offerNo=1;
   function kgm(d){ return KGM[d] || num(d)*num(d)*0.00617; }
   function money(n){ return (Math.round(n*100)/100).toLocaleString("bg-BG",{minimumFractionDigits:2,maximumFractionDigits:2})+" €"; }
+  function fmtP(n){ return n.toLocaleString("bg-BG",{minimumFractionDigits:3,maximumFractionDigits:3})+" €"; }
   function fmtW(n){ return n ? (Math.round(n*10)/10).toLocaleString("bg-BG",{maximumFractionDigits:1}) : "0"; }
   function offerNo(n){ return "ОФ-"+String(n).padStart(6,"0"); }
   function newRow(d,mode){ return {d:String(d||12),mode:mode||"m",m:"",kg:"",pcs:"",len:"12",price:""}; }
@@ -835,7 +841,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
       bins.forEach(function(b){ var cnt={}, keys=[]; b.items.forEach(function(mm){ if(!cnt[mm]){ cnt[mm]=0; keys.push(mm); } cnt[mm]++; });
         var key=keys.map(function(k){ return cnt[k]+"x"+k; }).join("+")+"|"+b.left;
         if(!pat[key]){ pat[key]={n:0,items:keys.map(function(k){ return {len:k/1000,c:cnt[k]}; }),rest:b.left/1000}; pord.push(key); } pat[key].n++; });
-      g.bars=bins.length; g.wt=g.bars*barWt(d); g.sum=g.wt/1000*g.price; g.waste=g.wt-g.detWt; g.tooLong=tooLong;
+      g.bars=bins.length; g.wt=g.bars*barWt(d); g.sum=g.wt*g.price; g.waste=g.wt-g.detWt; g.tooLong=tooLong;
       g.restM=bins.reduce(function(a,b){ return a+b.left; },0)/1000;
       g.patterns=pord.map(function(k){ return pat[k]; }); return g; });
   }
@@ -851,11 +857,12 @@ input[type=number]{font-variant-numeric:tabular-nums}
     if(o.delivery==null){ var di=o.extras.findIndex(function(x){ return String(x.name).trim().toLowerCase()==="доставка"; }); o.delivery = di>=0 ? o.extras.splice(di,1)[0].amount : ""; }
     o.rows.forEach(function(r){ if(r.m==null) r.m=""; if(!r.mode) r.mode="m"; });
     if(o.cut==null) o.cut=true; if(!o.stock) o.stock="12";
+    if(pricesWerePerTon) o.rows.forEach(function(r){ if(String(r.price).trim()!=="") r.price=perKg(r.price); });
   })(offer);
   function rowWt(r){ return r.mode==="pcs" ? num(r.pcs)*num(r.len)*kgm(r.d) : r.mode==="kg" ? num(r.kg) : num(r.m)*kgm(r.d); }
   function rowLen(r){ return r.mode==="pcs" ? num(r.pcs)*num(r.len) : r.mode==="m" ? num(r.m) : 0; }
   function rowPrice(r){ return String(r.price).trim()!=="" ? num(r.price) : num(store.prices[r.d]); }
-  function rowSum(r){ return rowWt(r)/1000*rowPrice(r); }
+  function rowSum(r){ return rowWt(r)*rowPrice(r); }
   function calc(){
     var wt=0, goods=0, detWt=0, plan=cutPlan(), bars=0;
     offer.rows.forEach(function(r){ detWt+=rowWt(r); if(!isCutRow(r)){ wt+=rowWt(r); goods+=rowSum(r); } });
@@ -877,7 +884,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
           : r.mode==="kg"
           ? "<label class=\"f wide\">Килограми<input data-r=\"kg\" inputmode=\"decimal\" value=\""+esc(r.kg)+"\"></label><span class=\"out\" data-out=\"kgm\"></span>"
           : "<label class=\"f wide\">Обща дължина, м<input data-r=\"m\" inputmode=\"decimal\" value=\""+esc(r.m)+"\"></label><span class=\"out\" data-out=\"kgm\"></span>")+
-        "<label class=\"f\">Цена €/т без ДДС<input data-r=\"price\" inputmode=\"decimal\" value=\""+esc(r.price)+"\" placeholder=\""+esc(store.prices[r.d]||"")+"\"></label>"+
+        "<label class=\"f\">Цена €/кг без ДДС<input data-r=\"price\" inputmode=\"decimal\" value=\""+esc(r.price)+"\" placeholder=\""+esc(store.prices[r.d]||"")+"\"></label>"+
         "<button type=\"button\" class=\"del\" data-rdel=\""+i+"\" aria-label=\"Изтрий\">×</button>"+
         "<div class=\"res\" data-res></div></div>";
     }).join("");
@@ -894,19 +901,15 @@ input[type=number]{font-variant-numeric:tabular-nums}
   function offerHTML(){
     var s=store.settings, c=calc(), until="", V=!!offer.vat;
     if(offer.date && num(offer.valid)){ var dt=new Date(offer.date+"T12:00:00"); dt.setDate(dt.getDate()+num(offer.valid)); until=pad(dt.getDate())+"."+pad(dt.getMonth()+1)+"."+dt.getFullYear()+" г."; }
-    var rows="", n=0, span=V?5:4, plan=c.plan, spec="", cutDet=0, cutCnt=0;
-    function line(name,q,w,p,sum){ n++; rows+="<tr><td class=\"c\">"+n+"</td><td>"+name+"</td><td class=\"n\">"+q+"</td><td class=\"n\">"+fmtW(w)+"</td><td class=\"n\">"+money(p)+"</td>"+(V?"<td class=\"n v\">"+money(p*1.2)+"</td>":"")+"<td class=\"n\">"+money(sum)+"</td>"+(V?"<td class=\"n v\">"+money(sum*1.2)+"</td>":"")+"</tr>"; }
-    offer.rows.forEach(function(r){ if(isCutRow(r)) return; var L=rowLen(r);
-      line("Арматура B500B Ø"+esc(r.d), r.mode==="pcs" ? esc(r.pcs||0)+" бр × "+esc(fmtNum(r.len||0))+" м" : (L ? fmtW(L)+" м" : "—"), rowWt(r), rowPrice(r), rowSum(r)); });
-    plan.forEach(function(g){ line("Арматура B500B Ø"+esc(g.d), g.bars+" пр. × "+fmtNum(stockLen())+" м", g.wt, g.price, g.sum); });
-    if(plan.length){ var k=0;
-      offer.rows.forEach(function(r){ if(!isCutRow(r)) return; k++; cutDet+=rowWt(r); cutCnt+=Math.round(num(r.pcs));
-        spec+="<tr><td class=\"c\">"+k+"</td><td>Арматура B500B Ø"+esc(r.d)+"</td><td class=\"n\">"+esc(r.pcs)+"</td><td class=\"n\">"+esc(fmtNum(r.len))+"</td><td class=\"n\">"+(Math.round(num(r.len)*kgm(r.d)*1000)/1000).toLocaleString("bg-BG")+"</td><td class=\"n\">"+fmtW(rowWt(r))+"</td></tr>"; });
-      var cutWt=plan.reduce(function(a,g){ return a+g.wt; },0);
-      spec="<h5>Детайли по заявка</h5><table><thead><tr><th style=\"width:7mm\">№</th><th>Артикул</th><th>Брой</th><th>Дължина, м</th><th>Тегло на 1 бр, кг</th><th>Общо тегло, кг</th></tr></thead><tbody>"+spec+"</tbody></table>"+
-        "<div class=\"of-cutsum\">Детайли: "+cutCnt+" бр, "+fmtW(cutDet)+" кг. Необходими пръти по "+fmtNum(stockLen())+" м: "+c.bars+" бр, "+fmtW(cutWt)+" кг. Остатък от разкроя: "+fmtW(cutWt-cutDet)+" кг.</div>"+
-        "<h5>Цена</h5>";
-    }
+    var rows="", n=0, span=V?4:3, plan=c.plan, groups={}, order=[];
+    function G(d){ d=String(d); if(!groups[d]){ groups[d]={d:d,wt:0,sum:0,det:[],price:0}; order.push(d); } return groups[d]; }
+    offer.rows.forEach(function(r){ var g=G(r.d); g.price=g.price||rowPrice(r);
+      if(r.mode==="pcs" && num(r.pcs) && num(r.len)) g.det.push(esc(r.pcs)+" бр × "+esc(fmtNum(r.len))+" м");
+      else if(r.mode==="m" && num(r.m)) g.det.push(fmtW(num(r.m))+" м");
+      if(!isCutRow(r)){ g.wt+=rowWt(r); g.sum+=rowSum(r); } });
+    plan.forEach(function(pg){ var g=G(pg.d); g.wt+=pg.wt; g.sum+=pg.sum; });
+    order.sort(function(a,b){ return a-b; }).forEach(function(d){ var g=groups[d]; if(!g.wt) return; var p=g.sum/g.wt; n++;
+      rows+="<tr><td class=\"c\">"+n+"</td><td>Арматура B500B Ø"+esc(g.d)+(g.det.length?"<div class=\"det\">"+g.det.join(" · ")+"</div>":"")+"</td><td class=\"n\">"+fmtW(g.wt)+"</td><td class=\"n\">"+fmtP(p)+"</td>"+(V?"<td class=\"n v\">"+fmtP(p*1.2)+"</td>":"")+"<td class=\"n\">"+money(g.sum)+"</td>"+(V?"<td class=\"n v\">"+money(g.sum*1.2)+"</td>":"")+"</tr>"; });
     function svc(name,amount){ n++; rows+="<tr><td class=\"c\">"+n+"</td><td colspan=\""+span+"\">"+esc(name)+"</td><td class=\"n\">"+money(amount)+"</td>"+(V?"<td class=\"n v\">"+money(amount*1.2)+"</td>":"")+"</tr>"; }
     if(c.delivery) svc("Доставка"+(offer.site?" до "+offer.site:""), c.delivery);
     offer.extras.forEach(function(x){ if(String(x.name).trim()||num(x.amount)) svc(x.name, num(x.amount)); });
@@ -914,8 +917,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
       "<div class=\"rc-head\"><div class=\"rc-co\"><img class=\"rc-logo\" src=\""+logoSrc()+"\" alt=\"\"><div><b>"+esc(s.company)+"</b>"+(s.eik?"<div>ЕИК "+esc(s.eik)+"</div>":"")+"<div>"+esc(s.address)+"</div>"+(s.phone?"<div>тел. "+esc(s.phone)+"</div>":"")+"</div></div>"+
       "<div class=\"rc-doc\"><div class=\"rc-title\">Оферта</div><div class=\"rc-kv\"><span>№</span><span>"+esc(offer.no)+"</span><span>Дата</span><span>"+esc(fmtDate(offer.date))+"</span>"+(until?"<span>Валидна до</span><span>"+until+"</span>":"")+"</div></div></div>"+
       "<div class=\"of-meta\"><div><div class=\"rc-lbl\">Клиент</div><b>"+esc(offer.client)+"</b><div>"+esc(offer.contact)+"</div></div><div><div class=\"rc-lbl\">Обект / доставка до</div><b>"+esc(offer.site)+"</b></div></div>"+
-      spec+
-      "<table><thead><tr><th style=\"width:7mm\">№</th><th>Артикул</th><th>"+(plan.length?"Количество":"Дължина")+"</th><th>Тегло, кг</th><th>Цена €/т<br>без ДДС</th>"+(V?"<th class=\"v\">Цена €/т<br>с ДДС</th>":"")+"<th>Сума<br>без ДДС</th>"+(V?"<th class=\"v\">Сума<br>с ДДС</th>":"")+"</tr></thead><tbody>"+rows+"</tbody></table>"+
+      "<table><thead><tr><th style=\"width:7mm\">№</th><th>Артикул</th><th>Количество, кг</th><th>Цена €/кг<br>без ДДС</th>"+(V?"<th class=\"v\">Цена €/кг<br>с ДДС</th>":"")+"<th>Сума<br>без ДДС</th>"+(V?"<th class=\"v\">Сума<br>с ДДС</th>":"")+"</tr></thead><tbody>"+rows+"</tbody></table>"+
       "<div class=\"of-tot\"><span>Общо тегло</span><span>"+fmtW(c.wt)+" кг</span>"+
         (c.disc?"<span>Отстъпка "+esc(fmtNum(offer.discount))+"% (арматура)</span><span>−"+money(c.disc)+"</span>":"")+
         (V ? "<span>Сума без ДДС</span><span>"+money(c.net)+"</span><span>ДДС 20%</span><span>"+money(c.vat)+"</span><span class=\"grand\">Общо с ДДС</span><span class=\"grand\">"+money(c.total)+"</span>"
@@ -923,6 +925,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
       "</div>"+
       (V?"":"<div class=\"of-note\" style=\"text-align:right;color:var(--ink-soft)\">Всички цени са без ДДС.</div>")+
       (offer.note?"<div class=\"of-note\"><b>Бележка:</b> "+esc(offer.note)+"</div>":"")+
+      (plan.length?"<div class=\"of-fine\">Количеството е определено по цели пръти × "+fmtNum(stockLen())+" м, необходими за изработката на детайлите. Остатъците от разкроя принадлежат на клиента и се предават при поискване.</div>":"")+
       "<div class=\"of-sign\"><div>Изготвил</div><div>Клиент</div></div>"+
     "</div>";
   }
@@ -945,7 +948,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
           "<ul>"+g.patterns.map(function(p){ return "<li>"+p.n+" пр.: "+(p.items.map(function(it){ return it.c+" × "+fmtNum(it.len)+" м"; }).join(" + ")||"продължение")+" (остатък "+fmtNum(Math.round(p.rest*1000)/1000)+" м)</li>"; }).join("")+"</ul></div>";
       }).join("") : "<span class=\"hint\">Няма редове „бр. детайли“. Изберете „бр. детайли“ в реда и въведете брой и дължина.</span>";
     }
-    $("of-sum").innerHTML = (c.plan.length ? "<span>Тегло на детайлите</span><span>"+fmtW(c.detWt)+" кг</span><span>Пръти за разкрой</span><span>"+c.bars+" бр</span><span>Тегло за плащане</span><span>"+fmtW(c.wt)+" кг</span>" : "<span>Общо тегло</span><span>"+fmtW(c.wt)+" кг</span>")+
+    $("of-sum").innerHTML = (c.plan.length ? "<span>Тегло на детайлите</span><span>"+fmtW(c.detWt)+" кг</span><span>Пръти за разкрой</span><span>"+c.bars+" бр</span><span>Остатък (само за нас)</span><span>"+fmtW(c.wt-c.detWt)+" кг</span><span>Тегло в офертата</span><span>"+fmtW(c.wt)+" кг</span>" : "<span>Общо тегло</span><span>"+fmtW(c.wt)+" кг</span>")+
       "<span>Арматура без ДДС</span><span>"+money(c.goods-c.disc)+"</span>"+
       (c.delivery?"<span>Доставка без ДДС</span><span>"+money(c.delivery)+"</span>":"")+
       (c.extras?"<span>Други услуги без ДДС</span><span>"+money(c.extras)+"</span>":"")+
