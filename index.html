@@ -351,7 +351,6 @@ input[type=number]{font-variant-numeric:tabular-nums}
       <button class="btn" id="of-dl" type="button">Свали PDF</button>
       <button class="btn" id="of-print" type="button">Печат</button>
       <button class="btn" id="of-new" type="button">Нова оферта</button>
-      <button class="btn" id="of-to-note" type="button">Направи бележка</button>
       <span class="spacer"></span>
       <span class="status" id="of-status"></span>
     </div>
@@ -1018,15 +1017,6 @@ input[type=number]{font-variant-numeric:tabular-nums}
       }).catch(function(){ ofFlash("PDF не се създаде. Ползвайте „Печат“ → „Запази като PDF“."); })
       .then(function(){ host.remove(); btn.disabled=false; });
   }
-
-  $("of-to-note").addEventListener("click",function(){
-    var d=blankDoc();
-    d.items=offer.rows.filter(function(r){ return rowWt(r)>0; }).map(function(r){ return {name:"Арматура B500B",grade:"B500B",d:String(r.d),w:String(Math.round(rowWt(r)))}; });
-    if(!d.items.length) d.items=[{name:"Арматура B500B",grade:"B500B",d:"",w:""}];
-    d.site=offer.site||""; if(String(offer.client).trim()){ d.hasClient=true; d.client=offer.client; var ci=findClient(offer.client); if(ci>=0){ d.clientEik=store.clients[ci].eik; d.clientAddr=store.clients[ci].addr; } }
-    d.note = "По оферта "+offer.no;
-    doc=d; store.draft=doc; persist(); fillForm(); show("new"); flash("Бележката е попълнена от "+offer.no);
-  });
 
   /* ---------- views ---------- */
   function show(v){
