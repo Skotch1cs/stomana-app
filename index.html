@@ -348,6 +348,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
   <section id="view-offer" hidden>
     <div class="toolbar">
       <button class="btn primary" id="of-share" type="button">Изпрати PDF</button>
+      <button class="btn" id="of-dl" type="button">Свали PDF</button>
       <button class="btn" id="of-print" type="button">Печат</button>
       <button class="btn" id="of-new" type="button">Нова оферта</button>
       <button class="btn" id="of-to-note" type="button">Направи бележка</button>
@@ -987,17 +988,18 @@ input[type=number]{font-variant-numeric:tabular-nums}
   $("of-new").addEventListener("click",function(){ if(!offer.sample && offer.no===offerNo(store.settings.offerNo)) store.settings.offerNo++; offer=blankOffer(); saveOffer(); persist(); renderOffer(); ofFlash("Нова оферта "+offer.no); });
   $("of-print").addEventListener("click",function(){ bumpOfferNo(); try{ window.print(); }catch(e){} });
   function bumpOfferNo(){ if(!offer.sample && offer.no===offerNo(store.settings.offerNo)){ store.settings.offerNo++; persist(); } }
-  $("of-share").addEventListener("click", function(){
-    var btn=this;
+  function pdfClick(btn,share){
     btn.disabled=true; ofFlash("Създавам PDF…");
-    loadH2P().then(function(){ makePdf(btn); }, function(){ btn.disabled=false; ofFlash("Няма връзка за създаване на PDF. Ползвайте „Печат“ → „Запази като PDF“."); });
-  });
+    loadH2P().then(function(){ makePdf(btn,share); }, function(){ btn.disabled=false; ofFlash("Няма връзка за създаване на PDF. Ползвайте „Печат“ → „Запази като PDF“."); });
+  }
+  $("of-share").addEventListener("click", function(){ pdfClick(this,true); });
+  $("of-dl").addEventListener("click", function(){ pdfClick(this,false); });
   var H2P_SRC="html2pdf.bundle.min.js";
   function loadH2P(){
     if(window.html2pdf) return Promise.resolve();
     return new Promise(function(ok,fail){ var sc=document.createElement("script"); sc.src=H2P_SRC; sc.onload=ok; sc.onerror=fail; document.head.appendChild(sc); });
   }
-  function makePdf(btn){
+  function makePdf(btn,share){
     var host=document.createElement("div");
     host.style.cssText="position:fixed;left:-10000px;top:0;width:210mm;background:#fff;color:#111";
     host.innerHTML="<div class=\"sheet\" style=\"transform:none;min-height:0\">"+offerHTML()+"</div>";
@@ -1007,7 +1009,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
       .from(host.firstChild).outputPdf("blob").then(function(blob){
         bumpOfferNo();
         var file=new File([blob],name,{type:"application/pdf"});
-        if(navigator.canShare && navigator.canShare({files:[file]})){
+        if(share && navigator.canShare && navigator.canShare({files:[file]})){
           return navigator.share({files:[file],title:name}).then(function(){ ofFlash("Изпратено"); }, function(){ ofFlash(""); });
         }
         var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click();
