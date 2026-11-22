@@ -152,6 +152,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .of-rows{display:flex;flex-direction:column;gap:8px}
 .of-row{display:grid;grid-template-columns:90px 120px 1fr 1fr 110px 34px;gap:6px;align-items:end;padding-bottom:8px;border-bottom:1px solid var(--line)}
 .of-row .f{font-size:11px}
+.of-row .nm{grid-column:1 / -1;max-width:260px}
 .of-row .out{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;padding-bottom:8px}
 .of-row .res{grid-column:1 / -1;font-size:13px;font-variant-numeric:tabular-nums;display:flex;flex-wrap:wrap;gap:4px 14px}
 .of-row .res b{font-size:15px}
@@ -826,11 +827,14 @@ input[type=number]{font-variant-numeric:tabular-nums}
   if(!store.barW){ store.barW={}; DIAMS.forEach(function(d){ store.barW[d]=Math.round(KGM[d]*12*100)/100; }); store.barW[10]=7.5; store.barW[14]=14.7; store.barWSample=true; }
   function stockLen(){ var L=num(offer.stock); return L>0?L:12; }
   function barWt(d){ return num(store.barW[d])/12*stockLen(); }
+  var OFFER_NAMES=["Арматура","Арматурна заготовка"];
+  /* cut-to-length rows are blanks unless the user picked a name for the row */
+  function rowName(r){ return r.name || (r.mode==="pcs" ? OFFER_NAMES[1] : OFFER_NAMES[0]); }
   function isCutRow(r){ return !!offer.cut && r.mode==="pcs" && num(r.pcs)>0 && num(r.len)>0; }
   /* first-fit decreasing: longest details first, each into the first bar where it still fits */
   function cutPlan(){
     var L=Math.round(stockLen()*1000), byD={}, order=[];
-    offer.rows.forEach(function(r){ if(!isCutRow(r)) return; var d=String(r.d); if(!byD[d]){ byD[d]={d:d,pieces:[],price:rowPrice(r),detWt:0,count:0}; order.push(d); }
+    offer.rows.forEach(function(r){ if(!isCutRow(r)) return; var d=rowName(r)+"|"+r.d; if(!byD[d]){ byD[d]={d:String(r.d),name:rowName(r),pieces:[],price:rowPrice(r),detWt:0,count:0}; order.push(d); }
       var mm=Math.round(num(r.len)*1000), n=Math.round(num(r.pcs)); byD[d].detWt+=rowWt(r); byD[d].count+=n; for(var k=0;k<n;k++) byD[d].pieces.push(mm); });
     return order.map(function(d){ var g=byD[d], bins=[], tooLong=0;
       g.pieces.sort(function(a,b){ return b-a; }).forEach(function(mm){
@@ -842,7 +846,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
       bins.forEach(function(b){ var cnt={}, keys=[]; b.items.forEach(function(mm){ if(!cnt[mm]){ cnt[mm]=0; keys.push(mm); } cnt[mm]++; });
         var key=keys.map(function(k){ return cnt[k]+"x"+k; }).join("+")+"|"+b.left;
         if(!pat[key]){ pat[key]={n:0,items:keys.map(function(k){ return {len:k/1000,c:cnt[k]}; }),rest:b.left/1000}; pord.push(key); } pat[key].n++; });
-      g.bars=bins.length; g.wt=g.bars*barWt(d); g.sum=g.wt*g.price; g.waste=g.wt-g.detWt; g.tooLong=tooLong;
+      g.bars=bins.length; g.wt=g.bars*barWt(g.d); g.sum=g.wt*g.price; g.waste=g.wt-g.detWt; g.tooLong=tooLong;
       g.restM=bins.reduce(function(a,b){ return a+b.left; },0)/1000;
       g.patterns=pord.map(function(k){ return pat[k]; }); return g; });
   }
@@ -878,6 +882,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
     var mOpt=function(v,t,cur){ return "<option value=\""+v+"\""+(cur===v?" selected":"")+">"+t+"</option>"; };
     $("of-rows").innerHTML = offer.rows.map(function(r,i){
       return "<div class=\"of-row\" data-i=\""+i+"\">"+
+        "<label class=\"f nm\">Артикул<select data-r=\"name\">"+OFFER_NAMES.map(function(v){ return "<option"+(v===rowName(r)?" selected":"")+">"+v+"</option>"; }).join("")+"</select></label>"+
         "<label class=\"f\">Диаметър<select data-r=\"d\">"+dOpts(r.d)+"</select></label>"+
         "<label class=\"f\">Въвеждам<select data-r=\"mode\">"+mOpt("m","метри",r.mode)+mOpt("kg","кг",r.mode)+mOpt("pcs","бр. детайли",r.mode)+"</select></label>"+
         (r.mode==="pcs"
@@ -903,14 +908,14 @@ input[type=number]{font-variant-numeric:tabular-nums}
     var s=store.settings, c=calc(), until="", V=!!offer.vat;
     if(offer.date && num(offer.valid)){ var dt=new Date(offer.date+"T12:00:00"); dt.setDate(dt.getDate()+num(offer.valid)); until=pad(dt.getDate())+"."+pad(dt.getMonth()+1)+"."+dt.getFullYear()+" г."; }
     var rows="", n=0, span=V?4:3, plan=c.plan, groups={}, order=[];
-    function G(d){ d=String(d); if(!groups[d]){ groups[d]={d:d,wt:0,sum:0,det:[],price:0}; order.push(d); } return groups[d]; }
-    offer.rows.forEach(function(r){ var g=G(r.d); g.price=g.price||rowPrice(r);
+    function G(name,d){ var k=name+"|"+d; if(!groups[k]){ groups[k]={d:String(d),name:name,wt:0,sum:0,det:[],price:0}; order.push(k); } return groups[k]; }
+    offer.rows.forEach(function(r){ var g=G(rowName(r),r.d); g.price=g.price||rowPrice(r);
       if(r.mode==="pcs" && num(r.pcs) && num(r.len)) g.det.push(esc(r.pcs)+" бр × "+esc(fmtNum(r.len))+" м");
       else if(r.mode==="m" && num(r.m)) g.det.push(fmtW(num(r.m))+" м");
       if(!isCutRow(r)){ g.wt+=rowWt(r); g.sum+=rowSum(r); } });
-    plan.forEach(function(pg){ var g=G(pg.d); g.wt+=pg.wt; g.sum+=pg.sum; });
-    order.sort(function(a,b){ return a-b; }).forEach(function(d){ var g=groups[d]; if(!g.wt) return; var p=g.sum/g.wt; n++;
-      rows+="<tr><td class=\"c\">"+n+"</td><td>Арматура B500B Ø"+esc(g.d)+(g.det.length?"<div class=\"det\">"+g.det.join(" · ")+"</div>":"")+"</td><td class=\"n\">"+fmtW(g.wt)+"</td><td class=\"n\">"+fmtP(p)+"</td>"+(V?"<td class=\"n v\">"+fmtP(p*1.2)+"</td>":"")+"<td class=\"n\">"+money(g.sum)+"</td>"+(V?"<td class=\"n v\">"+money(g.sum*1.2)+"</td>":"")+"</tr>"; });
+    plan.forEach(function(pg){ var g=G(pg.name,pg.d); g.wt+=pg.wt; g.sum+=pg.sum; });
+    order.sort(function(a,b){ return OFFER_NAMES.indexOf(groups[a].name)-OFFER_NAMES.indexOf(groups[b].name) || groups[a].d-groups[b].d; }).forEach(function(d){ var g=groups[d]; if(!g.wt) return; var p=g.sum/g.wt; n++;
+      rows+="<tr><td class=\"c\">"+n+"</td><td>"+esc(g.name)+" B500B Ø"+esc(g.d)+(g.det.length?"<div class=\"det\">"+g.det.join(" · ")+"</div>":"")+"</td><td class=\"n\">"+fmtW(g.wt)+"</td><td class=\"n\">"+fmtP(p)+"</td>"+(V?"<td class=\"n v\">"+fmtP(p*1.2)+"</td>":"")+"<td class=\"n\">"+money(g.sum)+"</td>"+(V?"<td class=\"n v\">"+money(g.sum*1.2)+"</td>":"")+"</tr>"; });
     function svc(name,amount){ n++; rows+="<tr><td class=\"c\">"+n+"</td><td colspan=\""+span+"\">"+esc(name)+"</td><td class=\"n\">"+money(amount)+"</td>"+(V?"<td class=\"n v\">"+money(amount*1.2)+"</td>":"")+"</tr>"; }
     if(c.delivery) svc("Доставка"+(offer.site?" до "+offer.site:""), c.delivery);
     offer.extras.forEach(function(x){ if(String(x.name).trim()||num(x.amount)) svc(x.name, num(x.amount)); });
@@ -943,7 +948,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
     var cutOn=!!offer.cut; $("o-cut").checked=cutOn; $("cut-box").hidden=!cutOn;
     if(cutOn){
       $("of-cut").innerHTML = c.plan.length ? c.plan.map(function(g){
-        return "<div><h4>Ø"+esc(g.d)+": "+g.bars+" пръта, "+fmtW(g.wt)+" кг</h4>"+
+        return "<div><h4>"+esc(g.name)+" Ø"+esc(g.d)+": "+g.bars+" пръта, "+fmtW(g.wt)+" кг</h4>"+
           "<div>Детайли "+g.count+" бр, "+fmtW(g.detWt)+" кг. Остатък "+fmtW(g.waste)+" кг ("+fmtW(g.restM)+" м).</div>"+
           (g.tooLong?"<div class=\"warn\">"+g.tooLong+" детайла са по-дълги от пръта.</div>":"")+
           "<ul>"+g.patterns.map(function(p){ return "<li>"+p.n+" пр.: "+(p.items.map(function(it){ return it.c+" × "+fmtNum(it.len)+" м"; }).join(" + ")||"продължение")+" (остатък "+fmtNum(Math.round(p.rest*1000)/1000)+" м)</li>"; }).join("")+"</ul></div>";
@@ -982,7 +987,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
     else { offer.extras.splice(+b.dataset.xdel,1); }
     renderOfferRows(); offerChanged();
   });
-  $("of-add").addEventListener("click",function(){ var last=offer.rows[offer.rows.length-1]||{}; var i=DIAMS.indexOf(+last.d); offer.rows.push(newRow(DIAMS[Math.min(DIAMS.length-1,i+1)]||12,last.mode)); renderOfferRows(); offerChanged(); var ins=document.querySelectorAll("#of-rows .of-row:last-child input"); if(ins[0]) ins[0].focus(); });
+  $("of-add").addEventListener("click",function(){ var last=offer.rows[offer.rows.length-1]||{}; var i=DIAMS.indexOf(+last.d); var nr=newRow(DIAMS[Math.min(DIAMS.length-1,i+1)]||12,last.mode); if(last.name) nr.name=last.name; offer.rows.push(nr); renderOfferRows(); offerChanged(); var ins=document.querySelectorAll("#of-rows .of-row:last-child input"); if(ins[0]) ins[0].focus(); });
   $("of-add-extra").addEventListener("click",function(){ offer.extras.push({name:"",amount:""}); renderOfferRows(); offerChanged(); var ins=document.querySelectorAll("#of-extras [data-xf=name]"); ins[ins.length-1].focus(); });
   function ofFlash(t){ $("of-status").textContent=t; clearTimeout(ofFlash.t); ofFlash.t=setTimeout(function(){ $("of-status").textContent=""; },3000); }
   $("of-new").addEventListener("click",function(){ if(!offer.sample && offer.no===offerNo(store.settings.offerNo)) store.settings.offerNo++; offer=blankOffer(); saveOffer(); persist(); renderOffer(); ofFlash("Нова оферта "+offer.no); });
