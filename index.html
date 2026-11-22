@@ -1070,7 +1070,14 @@ input[type=number]{font-variant-numeric:tabular-nums}
      Receipts live in the "docs" collection, saved clients in "clients",
      company settings, prices and bar weights in "meta/shared" (counters nextNo/offerNo
      as top-level fields, changed only in transactions). Drafts stay on the device. */
-  var FIREBASE_CONFIG = null;
+  var FIREBASE_CONFIG = {
+    apiKey: "AIzaSyC9TACSdCg3hO7be9WWtH-ULF5WMiqfB_A",
+    authDomain: "stomana-app.firebaseapp.com",
+    projectId: "stomana-app",
+    storageBucket: "stomana-app.firebasestorage.app",
+    messagingSenderId: "197455938196",
+    appId: "1:197455938196:web:8d936c04d35ecbb1ddaa81"
+  };
   var FB_SDK = "fb/";
   var SHARED_KEYS = ["company","eik","address","phone","logo","prefix","loadPoint","operator","decl"];
   var cloud = { on:false, putDoc:noop, delDoc:noop, putClient:noop, delClient:noop, putMeta:noop, setCounter:noop,
