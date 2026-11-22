@@ -194,6 +194,17 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .of h5 + table{margin-top:1.5mm}
 .of td .det{font-size:.82em;color:var(--ink-soft);margin-top:.5mm}
 .of-fine{margin-top:6mm;font-size:.72em;color:var(--ink-soft)}
+.sync{font-size:12px;font-weight:500;opacity:.85;display:flex;align-items:center;gap:6px}
+.sync::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.sync.ok::before{background:#3fb37f}.sync.wait::before{background:#e0a030}.sync.off::before{background:#d0603a}
+.login{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px))}
+.login-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:24px;width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px}
+.login-card #login-fields{display:flex;flex-direction:column;gap:12px}
+.login-card #login-fields[hidden]{display:none}
+.login-logo{height:96px;width:auto;align-self:center;background:#fff;border-radius:8px;padding:6px}
+.login-wait{text-align:center;color:var(--muted);margin:0}
+.login-err{color:var(--warn);margin:0;min-height:1.2em;font-size:13px}
+@media print{.login{display:none!important}}
 /* archive */
 .arch{overflow-x:auto}
 .arch table{border-collapse:collapse;width:100%;min-width:640px}
@@ -241,6 +252,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
     <img id="top-logo" alt="" style="height:30px;width:auto;background:#fff;border-radius:4px;padding:2px">
     <span>Стил Форс</span>
   </div>
+  <span class="sync" id="sync-status" hidden></span>
   <nav class="tabs" role="tablist">
     <button class="tab" role="tab" id="tab-new" data-view="new" aria-selected="true">Бележка</button>
     <button class="tab" role="tab" id="tab-offer" data-view="offer" aria-selected="false">Оферта</button>
@@ -463,11 +475,32 @@ input[type=number]{font-variant-numeric:tabular-nums}
           </div>
           <label class="f">Текст за потвърждение над подписите<input id="s-decl" data-s="decl"></label>
         </fieldset>
-        <p class="hint">Данните се пазят само в този браузър на това устройство.</p>
+        <p class="hint" id="local-hint">Данните се пазят само в този браузър на това устройство.</p>
+        <div id="account-box" hidden>
+          <div class="sep"></div>
+          <fieldset>
+            <legend>Общ достъп</legend>
+            <div class="row"><span>Влезли сте като <b id="account-email"></b>. Бележките, фирмите, цените и настройките са общи за всички, които влизат в приложението.</span></div>
+            <div class="row"><button class="btn small" type="button" id="btn-logout">Изход</button></div>
+          </fieldset>
+        </div>
       </form>
     </div>
   </section>
 </main>
+
+<div class="login" id="login" hidden>
+  <form class="login-card" id="login-form" autocomplete="on">
+    <img id="login-logo" alt="Стил Форс" class="login-logo">
+    <p class="login-wait" id="login-wait">Зареждане…</p>
+    <div id="login-fields" hidden>
+      <label class="f">Имейл<input id="login-email" type="email" autocomplete="username" required></label>
+      <label class="f">Парола<input id="login-pass" type="password" autocomplete="current-password" required></label>
+      <button class="btn primary" type="submit" id="login-btn">Вход</button>
+      <p class="login-err" id="login-err" role="alert"></p>
+    </div>
+  </form>
+</div>
 
 <datalist id="dl-grades"><option value="B500B"></option><option value="B420"></option><option value="B235"></option></datalist>
 <datalist id="dl-d"><option value="6"></option><option value="8"></option><option value="10"></option><option value="12"></option><option value="14"></option><option value="16"></option><option value="18"></option><option value="20"></option><option value="22"></option><option value="25"></option><option value="28"></option><option value="32"></option></datalist>
@@ -684,7 +717,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
     var name=String(doc.client||"").trim(); if(!name) return;
     var c={name:name, eik:String(doc.clientEik||"").trim(), addr:String(doc.clientAddr||"").trim()};
     var i=findClient(name); if(i>=0) store.clients[i]=c; else store.clients.push(c);
-    persist(); renderClientPick(); renderClientsSettings();
+    persist(); cloud.putClient(c); renderClientPick(); renderClientsSettings();
     if(!silent){ $("remember-hint").textContent="Запомнено: "+name; setTimeout(function(){ $("remember-hint").textContent=""; },2500); }
   }
   $("btn-remember").addEventListener("click", function(){ rememberClient(false); });
@@ -708,7 +741,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
     var copy = JSON.parse(JSON.stringify(doc)); delete copy.sample;
     if(!copy.id){
       copy.id = uid();
-      if(copy.no===formatNo(s.nextNo)) s.nextNo = (+s.nextNo||1)+1;
+      if(copy.no===formatNo(s.nextNo)){ var usedNo=+s.nextNo||1; s.nextNo = usedNo+1; }
       store.docs.unshift(copy);
     } else {
       var i = store.docs.findIndex(function(d){ return d.id===copy.id; });
@@ -719,8 +752,15 @@ input[type=number]{font-variant-numeric:tabular-nums}
     doc = JSON.parse(JSON.stringify(copy));
     store.draft = doc;
     var ok = persist();
-    flash(ok ? "Запазено: "+doc.no : "Не може да се запише в този браузър (личен режим?)");
+    flash(ok||cloud.on ? "Запазено: "+doc.no : "Не може да се запише в този браузър (личен режим?)");
     refreshLists(); fillSettings();
+    cloud.putDoc(copy);
+    if(usedNo) cloud.takeNo("nextNo", usedNo, copy.id).then(function(n){
+      if(n===usedNo) return;
+      copy.no=formatNo(n); cloud.putDoc(copy);
+      if(doc.id===copy.id){ doc.no=copy.no; store.draft=doc; persist(); fillForm(); }
+      flash("Номер "+formatNo(usedNo)+" вече е зает. Бележката е записана като "+copy.no+".");
+    });
   }
   $("btn-save").addEventListener("click", saveDoc);
   $("btn-new").addEventListener("click", function(){ doc = blankDoc(); store.draft=doc; persist(); fillForm(); flash("Нова бележка "+doc.no); $("f-site").focus(); });
@@ -757,7 +797,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
       doc=n; store.draft=doc; persist(); fillForm(); show("new"); flash("Копие като "+doc.no+" — проверете теглото");
     }
     else if(act==="del"){ box.innerHTML="<span class=\"hint\">Изтриване?</span><button class=\"btn small danger\" data-act=\"del-yes\">Да</button><button class=\"btn small\" data-act=\"del-no\">Не</button>"; }
-    else if(act==="del-yes"){ store.docs=store.docs.filter(function(x){return x.id!==id;}); persist(); renderArchive(); refreshLists(); }
+    else if(act==="del-yes"){ store.docs=store.docs.filter(function(x){return x.id!==id;}); persist(); renderArchive(); refreshLists(); cloud.delDoc(id); }
     else if(act==="del-no"){ renderArchive(); }
   });
   function refreshLists(){
@@ -780,6 +820,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
     var el=e.target; if(!el.dataset.s) return;
     store.settings[el.dataset.s] = el.dataset.s==="nextNo" ? Math.max(1,parseInt(el.value,10)||1) : el.value;
     persist(); renderPreview();
+    if(el.dataset.s==="nextNo") cloud.setCounter("nextNo", store.settings.nextNo); else cloud.putMeta();
   });
   $("set-form").addEventListener("submit", function(e){ e.preventDefault(); });
   $("s-logo").addEventListener("change", function(){
@@ -791,7 +832,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
         var max=480, k=Math.min(1,max/Math.max(img.width,img.height));
         var c=document.createElement("canvas"); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
         c.getContext("2d").drawImage(img,0,0,c.width,c.height);
-        store.settings.logo=c.toDataURL("image/png"); persist(); fillSettings(); renderPreview();
+        store.settings.logo=c.toDataURL("image/png"); persist(); fillSettings(); renderPreview(); cloud.putMeta();
       };
       img.src=rd.result;
     };
@@ -799,10 +840,10 @@ input[type=number]{font-variant-numeric:tabular-nums}
   });
   $("clients-list").addEventListener("click", function(e){
     var b=e.target.closest("[data-cdel]"); if(!b) return;
-    if(b.dataset.confirm){ store.clients.splice(+b.dataset.cdel,1); persist(); renderClientsSettings(); renderClientPick(); }
+    if(b.dataset.confirm){ var gone=store.clients.splice(+b.dataset.cdel,1)[0]; persist(); if(gone) cloud.delClient(gone.name); renderClientsSettings(); renderClientPick(); }
     else { b.dataset.confirm="1"; b.textContent="Сигурни ли сте? Изтрий"; }
   });
-  $("s-logo-del").addEventListener("click", function(){ store.settings.logo=""; persist(); fillSettings(); renderPreview(); });
+  $("s-logo-del").addEventListener("click", function(){ store.settings.logo=""; persist(); fillSettings(); renderPreview(); cloud.putMeta(); });
 
 
   /* ---------- offer calculator ---------- */
@@ -976,9 +1017,9 @@ input[type=number]{font-variant-numeric:tabular-nums}
     if(el.dataset.o){ offer[el.dataset.o]=el.value; offerChanged(); }
     else if(el.dataset.r && (row=el.closest("[data-i]"))){ var r=offer.rows[+row.dataset.i]; r[el.dataset.r]=el.value; if(el.dataset.r==="d"||el.dataset.r==="mode"){ if(el.dataset.r==="mode"&&el.value==="pcs"&&!r.len) r.len="12"; renderOfferRows(); } offerChanged(); }
     else if(el.dataset.xf && (row=el.closest("[data-x]"))){ offer.extras[+row.dataset.x][el.dataset.xf]=el.value; offerChanged(); }
-    else if(el.dataset.bw){ store.barW[el.dataset.bw]=el.value; store.barWSample=false; $("of-barw-chip").hidden=true; persist(); renderOfferPreview(); }
+    else if(el.dataset.bw){ store.barW[el.dataset.bw]=el.value; store.barWSample=false; $("of-barw-chip").hidden=true; persist(); cloud.putMeta(); renderOfferPreview(); }
     else if(el.id==="o-cut"){ offer.cut=el.checked; offerChanged(); }
-    else if(el.dataset.p){ store.prices[el.dataset.p]=el.value; store.pricesSample=false; $("of-prices-chip").hidden=true; persist(); renderOfferRows(); renderOfferPreview(); }
+    else if(el.dataset.p){ store.prices[el.dataset.p]=el.value; store.pricesSample=false; $("of-prices-chip").hidden=true; persist(); cloud.putMeta(); renderOfferRows(); renderOfferPreview(); }
   });
   $("o-vat").addEventListener("click",function(){ offer.vat=!offer.vat; offerChanged(); });
   $("of-form").addEventListener("click",function(e){
@@ -990,9 +1031,9 @@ input[type=number]{font-variant-numeric:tabular-nums}
   $("of-add").addEventListener("click",function(){ var last=offer.rows[offer.rows.length-1]||{}; var i=DIAMS.indexOf(+last.d); var nr=newRow(DIAMS[Math.min(DIAMS.length-1,i+1)]||12,last.mode); if(last.name) nr.name=last.name; offer.rows.push(nr); renderOfferRows(); offerChanged(); var ins=document.querySelectorAll("#of-rows .of-row:last-child input"); if(ins[0]) ins[0].focus(); });
   $("of-add-extra").addEventListener("click",function(){ offer.extras.push({name:"",amount:""}); renderOfferRows(); offerChanged(); var ins=document.querySelectorAll("#of-extras [data-xf=name]"); ins[ins.length-1].focus(); });
   function ofFlash(t){ $("of-status").textContent=t; clearTimeout(ofFlash.t); ofFlash.t=setTimeout(function(){ $("of-status").textContent=""; },3000); }
-  $("of-new").addEventListener("click",function(){ if(!offer.sample && offer.no===offerNo(store.settings.offerNo)) store.settings.offerNo++; offer=blankOffer(); saveOffer(); persist(); renderOffer(); ofFlash("Нова оферта "+offer.no); });
+  $("of-new").addEventListener("click",function(){ bumpOfferNo(); offer=blankOffer(); saveOffer(); persist(); renderOffer(); ofFlash("Нова оферта "+offer.no); });
   $("of-print").addEventListener("click",function(){ bumpOfferNo(); try{ window.print(); }catch(e){} });
-  function bumpOfferNo(){ if(!offer.sample && offer.no===offerNo(store.settings.offerNo)){ store.settings.offerNo++; persist(); } }
+  function bumpOfferNo(){ if(!offer.sample && offer.no===offerNo(store.settings.offerNo)){ var used=+store.settings.offerNo||1; store.settings.offerNo=used+1; persist(); cloud.takeNo("offerNo", used); } }
   function pdfClick(btn,share){
     btn.disabled=true; ofFlash("Създавам PDF…");
     loadH2P().then(function(){ makePdf(btn,share); }, function(){ btn.disabled=false; ofFlash("Няма връзка за създаване на PDF. Ползвайте „Печат“ → „Запази като PDF“."); });
@@ -1023,6 +1064,176 @@ input[type=number]{font-variant-numeric:tabular-nums}
       }).catch(function(){ ofFlash("PDF не се създаде. Ползвайте „Печат“ → „Запази като PDF“."); })
       .then(function(){ host.remove(); btn.disabled=false; });
   }
+
+
+  /* ---------- shared cloud storage (Firebase) ----------
+     Receipts live in the "docs" collection, saved clients in "clients",
+     company settings, prices and bar weights in "meta/shared" (counters nextNo/offerNo
+     as top-level fields, changed only in transactions). Drafts stay on the device. */
+  var FIREBASE_CONFIG = null;
+  var FB_SDK = "fb/";
+  var SHARED_KEYS = ["company","eik","address","phone","logo","prefix","loadPoint","operator","decl"];
+  var cloud = { on:false, putDoc:noop, delDoc:noop, putClient:noop, delClient:noop, putMeta:noop, setCounter:noop,
+    takeNo:function(k,used){ return Promise.resolve(used); } };
+  function noop(){}
+  (function(){
+    var framed=false; try { framed = window.self!==window.top; } catch(e){ framed=true; }
+    var cfg = window.__FB_EMU ? {apiKey:"demo-key",authDomain:"demo-stomana.firebaseapp.com",projectId:"demo-stomana"} : FIREBASE_CONFIG;
+    if(!cfg || framed) return;
+    cloud.on = true;
+    var db, auth, unsub=[], metaRef, metaTimer, pending=0, offline=false, started=false;
+    function clientKey(name){ return encodeURIComponent(String(name||"").trim().toLowerCase()).slice(0,700) || "_"; }
+    function status(){
+      var el=$("sync-status"); el.hidden=false;
+      el.className="sync "+(offline?"off":pending?"wait":"ok");
+      el.textContent = offline ? "Без връзка" : pending ? "Записва…" : "Синхронизирано";
+    }
+    function track(p){ pending++; status(); return p.then(function(){ pending--; status(); }, function(e){ pending--; status(); console.error(e); flash("Грешка при записа в облака. Проверете връзката."); }); }
+    function loadScript(src){ return new Promise(function(ok,fail){ var sc=document.createElement("script"); sc.src=src; sc.onload=ok; sc.onerror=fail; document.head.appendChild(sc); }); }
+    function sharedMeta(){
+      var st={}; SHARED_KEYS.forEach(function(k){ st[k]=store.settings[k]==null?"":store.settings[k]; });
+      return {settings:st, prices:store.prices||{}, barW:store.barW||{}, pricesSample:!!store.pricesSample, barWSample:!!store.barWSample, priceUnit:store.priceUnit||"kg"};
+    }
+    cloud.putDoc=function(d){ if(!db) return; var c=JSON.parse(JSON.stringify(d)); delete c.sample; track(db.collection("docs").doc(c.id).set(c)); };
+    cloud.delDoc=function(id){ if(db) track(db.collection("docs").doc(id).delete()); };
+    cloud.putClient=function(c){ if(db) track(db.collection("clients").doc(clientKey(c.name)).set({name:c.name,eik:c.eik||"",addr:c.addr||""})); };
+    cloud.delClient=function(name){ if(db) track(db.collection("clients").doc(clientKey(name)).delete()); };
+    cloud.putMeta=function(){ if(!db) return; clearTimeout(metaTimer); pending++; status(); metaTimer=setTimeout(function(){ pending--; track(metaRef.set(sharedMeta(),{merge:true})); },600); };
+    cloud.setCounter=function(k,v){ if(!db) return; var u={}; u[k]=Math.max(1,parseInt(v,10)||1); track(metaRef.set(u,{merge:true})); };
+    /* claim number `used`; if someone already took it, get the next free one */
+    function claim(k,used){
+      var got=used;
+      return db.runTransaction(function(t){ return t.get(metaRef).then(function(snap){
+        var cur=snap.exists && snap.get(k) ? +snap.get(k) : 1;
+        got = used>=cur ? used : cur;
+        var u={}; u[k]=got+1; t.set(metaRef,u,{merge:true});
+      }); }).then(function(){ return got; });
+    }
+    /* claims that could not reach the cloud (no internet) wait in store.pendingNo */
+    cloud.takeNo=function(k,used,docId){
+      if(!db) return Promise.resolve(used);
+      pending++; status();
+      return claim(k,used).then(function(n){ pending--; status(); return n; }, function(e){
+        pending--; status(); console.warn("number claim queued", e);
+        store.pendingNo=(store.pendingNo||[]).concat([{k:k,used:used,docId:docId||null}]); persist();
+        return used;
+      });
+    };
+    function retryClaims(){
+      var q=store.pendingNo||[]; if(!db || !q.length || retryClaims.busy) return;
+      retryClaims.busy=true; store.pendingNo=[]; persist();
+      q.reduce(function(p,it){ return p.then(function(){ return claim(it.k,it.used).then(function(n){
+        if(n===it.used || !it.docId) return;
+        var d=store.docs.find(function(x){ return x.id===it.docId; }); if(!d) return;
+        var old=d.no; d.no=formatNo(n); cloud.putDoc(d);
+        if(doc.id===d.id){ doc.no=d.no; store.draft=doc; persist(); fillForm(); }
+        flash("Бележка "+old+" беше записана без връзка, а номерът вече е зает. Новият ѝ номер е "+d.no+".");
+      }, function(){ store.pendingNo=(store.pendingNo||[]).concat([it]); persist(); }); }); }, Promise.resolve())
+       .then(function(){ retryClaims.busy=false; });
+    }
+
+    function applyMeta(m){
+      var prevNext=+store.settings.nextNo||1, prevOffer=+store.settings.offerNo||1;
+      if(m.settings) SHARED_KEYS.forEach(function(k){ if(m.settings[k]!=null) store.settings[k]=m.settings[k]; });
+      if(m.prices) store.prices=m.prices;
+      if(m.barW) store.barW=m.barW;
+      if(m.pricesSample!=null) store.pricesSample=m.pricesSample;
+      if(m.barWSample!=null) store.barWSample=m.barWSample;
+      if(m.priceUnit) store.priceUnit=m.priceUnit;
+      if(m.nextNo) store.settings.nextNo=+m.nextNo;
+      if(m.offerNo) store.settings.offerNo=+m.offerNo;
+      /* an unsaved draft still showing the old next number moves to the new one */
+      if(!doc.id && !doc.sample && doc.no===formatNo(prevNext) && prevNext!==store.settings.nextNo){ doc.no=formatNo(store.settings.nextNo); store.draft=doc; }
+      if(!offer.sample && offer.no===offerNo(prevOffer) && prevOffer!==store.settings.offerNo){ offer.no=offerNo(store.settings.offerNo); store.offer=offer; }
+      persist();
+      var a=document.activeElement, editing = a && a.closest && (a.closest("#set-form") || a.closest("#of-prices") || a.closest("#of-barw"));
+      if(!editing){ fillSettings(); if(!$("view-offer").hidden) renderOffer(); }
+      if(document.activeElement!==$("f-no")) $("f-no").value=doc.no;
+      renderPreview();
+    }
+    function subscribe(){
+      unsub.push(db.collection("docs").onSnapshot({includeMetadataChanges:true}, function(snap){
+        offline = snap.metadata.fromCache && !navigator.onLine; status();
+        store.docs = snap.docs.map(function(d){ return d.data(); }).sort(function(a,b){ return String(b.savedAt||"").localeCompare(String(a.savedAt||"")); });
+        persist(); refreshLists(); if(!$("view-archive").hidden) renderArchive();
+      }, denied));
+      unsub.push(db.collection("clients").onSnapshot(function(snap){
+        store.clients = snap.docs.map(function(d){ return d.data(); });
+        persist(); renderClientPick(); renderClientsSettings();
+      }, denied));
+      unsub.push(metaRef.onSnapshot(function(snap){ if(snap.exists) applyMeta(snap.data()); }, denied));
+    }
+    /* first login on a device: everything saved here before goes to the cloud */
+    function migrate(user){
+      var flag="migrated:"+user.uid; if(store[flag]) return Promise.resolve();
+      return Promise.all([db.collection("docs").get(), db.collection("clients").get(), metaRef.get()]).then(function(r){
+        var haveDocs={}, haveCl={}, batch=db.batch(), n=0;
+        r[0].forEach(function(d){ haveDocs[d.id]=1; }); r[1].forEach(function(d){ haveCl[d.id]=1; });
+        store.docs.forEach(function(d){ if(d.id && !haveDocs[d.id]){ batch.set(db.collection("docs").doc(d.id), JSON.parse(JSON.stringify(d))); n++; } });
+        store.clients.forEach(function(c){ var k=clientKey(c.name); if(!haveCl[k]){ batch.set(db.collection("clients").doc(k),{name:c.name,eik:c.eik||"",addr:c.addr||""}); n++; } });
+        if(!r[2].exists){ var m=sharedMeta(); m.nextNo=+store.settings.nextNo||1; m.offerNo=+store.settings.offerNo||1; batch.set(metaRef,m); n++; }
+        else {
+          var m2={}, rm=r[2].data();
+          if((+store.settings.nextNo||1) > (+rm.nextNo||1)) m2.nextNo=+store.settings.nextNo;
+          if((+store.settings.offerNo||1) > (+rm.offerNo||1)) m2.offerNo=+store.settings.offerNo;
+          if(rm.pricesSample && store.pricesSample===false){ m2.prices=store.prices; m2.pricesSample=false; }
+          if(rm.barWSample && store.barWSample===false){ m2.barW=store.barW; m2.barWSample=false; }
+          if(Object.keys(m2).length){ batch.set(metaRef,m2,{merge:true}); n++; }
+        }
+        return (n?batch.commit():Promise.resolve()).then(function(){ store[flag]=true; persist(); if(n) flash("Данните от това устройство са качени в облака."); });
+      });
+    }
+    function denied(e){
+      console.error(e);
+      if(e && e.code==="permission-denied"){ auth.signOut().then(function(){ loginError(e); }); }
+    }
+    function showLogin(wait){
+      $("login").hidden=false; $("login-logo").src=BUILTIN_LOGO;
+      $("login-wait").hidden=!wait; $("login-fields").hidden=!!wait;
+      if(!wait) setTimeout(function(){ $("login-email").focus(); },50);
+    }
+    function loginError(e){
+      var code=(e&&e.code)||"";
+      var msg = /invalid-credential|wrong-password|user-not-found|invalid-email|invalid-login/.test(code) ? "Грешен имейл или парола."
+        : /too-many-requests/.test(code) ? "Твърде много опити. Опитайте след малко."
+        : /network/.test(code) ? "Няма връзка с интернет."
+        : /permission-denied/.test(code) ? "Този потребител няма достъп до данните. Обадете се на администратора."
+        : "Входът не успя ("+(code||"неизвестна грешка")+").";
+      $("login-err").textContent=msg;
+    }
+    showLogin(true);
+    $("local-hint").hidden=true;
+    var base = window.__FB_SDK || FB_SDK;
+    loadScript(base+"firebase-app-compat.js")
+      .then(function(){ return Promise.all([loadScript(base+"firebase-auth-compat.js"), loadScript(base+"firebase-firestore-compat.js")]); })
+      .then(function(){
+        firebase.initializeApp(cfg);
+        auth=firebase.auth(); var fdb=firebase.firestore();
+        if(window.__FB_EMU){ auth.useEmulator("http://127.0.0.1:9099",{disableWarnings:true}); fdb.useEmulator("127.0.0.1",8080); }
+        else fdb.enablePersistence({synchronizeTabs:true}).catch(function(){});
+        auth.onAuthStateChanged(function(user){
+          unsub.forEach(function(f){ f(); }); unsub=[]; db=null;
+          if(!user){ showLogin(false); $("account-box").hidden=true; $("sync-status").hidden=true; return; }
+          db=fdb; metaRef=db.collection("meta").doc("shared");
+          $("account-email").textContent=user.email||""; $("account-box").hidden=false;
+          migrate(user).then(function(){
+            subscribe(); $("login").hidden=true; status(); retryClaims();
+          }, function(e){
+            if(e && e.code==="permission-denied") return denied(e);
+            console.error(e); subscribe(); $("login").hidden=true; status();
+          });
+        });
+      })
+      .catch(function(e){ console.error(e); $("login-wait").textContent="Не може да се зареди връзката с облака. Проверете интернета и презаредете страницата."; });
+    $("login-form").addEventListener("submit", function(e){
+      e.preventDefault(); $("login-err").textContent=""; $("login-btn").disabled=true;
+      auth.signInWithEmailAndPassword($("login-email").value.trim(), $("login-pass").value)
+        .catch(loginError).then(function(){ $("login-btn").disabled=false; });
+    });
+    $("btn-logout").addEventListener("click", function(){ auth.signOut(); });
+    window.addEventListener("online", function(){ offline=false; status(); retryClaims(); });
+    window.addEventListener("offline", function(){ offline=true; status(); });
+  })();
 
   /* ---------- views ---------- */
   function show(v){
