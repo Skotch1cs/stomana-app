@@ -57,7 +57,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .items table{border-collapse:collapse;width:100%;min-width:420px}
 .items th{font-size:11px;font-weight:600;color:var(--muted);text-align:left;padding:0 4px 4px}
 .items td{padding:2px}
-.items input{padding:6px 7px}
+.items input,.items select{padding:6px 7px}
 .items .num{width:76px}
 .items .d{width:64px}
 .del{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:5px;width:30px;height:32px;cursor:pointer;font-size:16px;line-height:1}
@@ -468,11 +468,6 @@ input[type=number]{font-variant-numeric:tabular-nums}
   </section>
 </main>
 
-<datalist id="dl-products">
-  <option value="Арматура B500B"></option><option value="Арматура B420"></option><option value="Арматура A-I (гладка)"></option>
-  <option value="Арматурна мрежа"></option><option value="Стремена"></option><option value="Тел за връзване"></option>
-  <option value="Огъната арматура по спецификация"></option>
-</datalist>
 <datalist id="dl-grades"><option value="B500B"></option><option value="B420"></option><option value="B235"></option></datalist>
 <datalist id="dl-d"><option value="6"></option><option value="8"></option><option value="10"></option><option value="12"></option><option value="14"></option><option value="16"></option><option value="18"></option><option value="20"></option><option value="22"></option><option value="25"></option><option value="28"></option><option value="32"></option></datalist>
 <datalist id="dl-clients"></datalist><datalist id="dl-sites"></datalist><datalist id="dl-to"></datalist><datalist id="dl-plates"></datalist><datalist id="dl-drivers"></datalist>
@@ -507,7 +502,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
     var s = store.settings;
     return { id:null, title:"Експедиционна бележка", no:formatNo(s.nextNo), date:todayISO(), time:nowHM(),
       hasClient:false, client:"", clientEik:"", clientAddr:"", site:"", from:s.loadPoint||"", to:"",
-      items:[{name:"Арматура B500B",grade:"B500B",d:"",len:"",qty:"",w:""}],
+      items:[{name:"Арматура",grade:"B500B",d:"",len:"",qty:"",w:""}],
       gross:"", tare:"", plate:"", trailer:"", driver:"", carrier:"",
       tDepart:nowHM(), tArrive:"", tStart:"", tEnd:"", issuer:s.operator||"", receiver:"", note:"" };
   }
@@ -517,9 +512,9 @@ input[type=number]{font-variant-numeric:tabular-nums}
     d.hasClient=true; d.client="Монолит Груп ЕООД"; d.clientEik="203456789"; d.clientAddr="гр. София, ул. Примерна 1";
     d.site="Жилищна сграда, ж.к. Суходол, УПИ 12, гр. София"; d.to="";
     d.items=[
-      {name:"Арматура B500B",grade:"B500B",d:"12",w:"1600"},
-      {name:"Арматура B500B",grade:"B500B",d:"16",w:"1520"},
-      {name:"Стремена",grade:"B500B",d:"8",w:"190"}
+      {name:"Арматура",grade:"B500B",d:"12",w:"1600"},
+      {name:"Арматура",grade:"B500B",d:"16",w:"1520"},
+      {name:"Арматурна заготовка",grade:"B500B",d:"8",w:"190"}
     ];
         d.plate="СВ 9047 МЕ"; d.driver="Арам Петров"; d.carrier="Наемен транспорт";
     d.issuer="Иван Иванов";
@@ -635,10 +630,16 @@ input[type=number]{font-variant-numeric:tabular-nums}
   $("doc-form").addEventListener("submit", function(e){ e.preventDefault(); });
 
   var tbody=$("items-body");
+  var ITEM_NAMES=["Арматура","Арматурна заготовка"];
+  /* the class has its own column, so older names like "Арматура B500B" become plain "Арматура" */
+  function normName(v){ v=String(v||"").trim(); return (!v || /^Арматура\s+(B\d|A-)/i.test(v)) ? "Арматура" : v; }
+  function nameOpts(cur){ var list=ITEM_NAMES.indexOf(cur)<0 ? ITEM_NAMES.concat([cur]) : ITEM_NAMES;
+    return list.map(function(v){ return "<option"+(v===cur?" selected":"")+">"+esc(v)+"</option>"; }).join(""); }
   function renderItems(){
+    doc.items.forEach(function(it){ it.name=normName(it.name); });
     tbody.innerHTML = doc.items.map(function(it,i){
       return "<tr>"+
-        "<td data-label=\"Артикул\"><input data-row=\""+i+"\" data-f=\"name\" list=\"dl-products\" value=\""+esc(it.name)+"\" aria-label=\"Артикул\"></td>"+
+        "<td data-label=\"Артикул\"><select data-row=\""+i+"\" data-f=\"name\" aria-label=\"Артикул\">"+nameOpts(it.name)+"</select></td>"+
         "<td data-label=\"Клас\"><input class=\"d\" data-row=\""+i+"\" data-f=\"grade\" style=\"width:78px\" list=\"dl-grades\" value=\""+esc(it.grade)+"\" aria-label=\"Клас\"></td>"+
         "<td data-label=\"Ø мм\"><input class=\"d\" data-row=\""+i+"\" data-f=\"d\" list=\"dl-d\" inputmode=\"numeric\" value=\""+esc(it.d)+"\" aria-label=\"Диаметър\"></td>"+
         "<td data-label=\"Тегло кг\"><input class=\"num\" style=\"width:110px\" data-row=\""+i+"\" data-f=\"w\" inputmode=\"decimal\" value=\""+esc(it.w)+"\" placeholder=\""+(autoW(it)?Math.round(autoW(it)):"")+"\" aria-label=\"Тегло\"></td>"+
@@ -652,12 +653,12 @@ input[type=number]{font-variant-numeric:tabular-nums}
   tbody.addEventListener("click", function(e){
     var b=e.target.closest("[data-del]"); if(!b) return;
     doc.items.splice(+b.dataset.del,1);
-    if(!doc.items.length) doc.items.push({name:"",grade:"",d:"",len:"",qty:"",w:""});
+    if(!doc.items.length) doc.items.push({name:"Арматура",grade:"B500B",d:"",len:"",qty:"",w:""});
     renderItems(); changed();
   });
   $("btn-add-row").addEventListener("click", function(){
     var last = doc.items[doc.items.length-1]||{};
-    doc.items.push({name:last.name||"Арматура B500B",grade:last.grade||"B500B",d:"",len:last.len||"",qty:"",w:""});
+    doc.items.push({name:last.name||"Арматура",grade:last.grade||"B500B",d:"",len:last.len||"",qty:"",w:""});
     renderItems(); changed();
     var ins = tbody.querySelectorAll("input[data-f=\"d\"]"); ins[ins.length-1].focus();
   });
