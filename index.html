@@ -1051,8 +1051,14 @@ input[type=number]{font-variant-numeric:tabular-nums}
     host.innerHTML="<div class=\"sheet\" style=\"transform:none;min-height:0\">"+offerHTML()+"</div>";
     document.body.appendChild(host);
     var name=(offer.no+(offer.client?" "+offer.client:"")).replace(/[\\\/:*?"<>|]+/g,"").trim()+".pdf";
-    html2pdf().set({margin:0, filename:name, image:{type:"jpeg",quality:0.95}, html2canvas:{scale:2,backgroundColor:"#ffffff",scrollX:0,scrollY:0}, jsPDF:{unit:"mm",format:"a4",orientation:"portrait"}})
-      .from(host.firstChild).outputPdf("blob").then(function(blob){
+    /* iPhone Safari draws an empty page when the window is scrolled, so render from the top and come back */
+    var sx=window.pageXOffset||0, sy=window.pageYOffset||0;
+    window.scrollTo(0,0);
+    new Promise(function(ok){ requestAnimationFrame(function(){ requestAnimationFrame(ok); }); }).then(function(){
+      return html2pdf().set({margin:0, filename:name, image:{type:"jpeg",quality:0.95}, html2canvas:{scale:2,backgroundColor:"#ffffff",scrollX:0,scrollY:0}, jsPDF:{unit:"mm",format:"a4",orientation:"portrait"}})
+        .from(host.firstChild).outputPdf("blob");
+    }).then(function(blob){
+        window.scrollTo(sx,sy);
         bumpOfferNo();
         var file=new File([blob],name,{type:"application/pdf"});
         if(share && navigator.canShare && navigator.canShare({files:[file]})){
@@ -1062,7 +1068,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
         setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },4000);
         ofFlash("PDF е изтеглен: "+name);
       }).catch(function(){ ofFlash("PDF не се създаде. Ползвайте „Печат“ → „Запази като PDF“."); })
-      .then(function(){ host.remove(); btn.disabled=false; });
+      .then(function(){ host.remove(); btn.disabled=false; window.scrollTo(sx,sy); });
   }
 
 
