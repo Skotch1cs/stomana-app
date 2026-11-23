@@ -1047,11 +1047,11 @@ input[type=number]{font-variant-numeric:tabular-nums}
   }
   function makePdf(btn,share){
     var host=document.createElement("div");
-    host.style.cssText="position:fixed;left:-10000px;top:0;width:210mm;background:#fff;color:#111";
+    host.style.cssText="position:absolute;left:-10000px;top:0;width:210mm;background:#fff;color:#111";
     host.innerHTML="<div class=\"sheet\" style=\"transform:none;min-height:0\">"+offerHTML()+"</div>";
     document.body.appendChild(host);
     var name=(offer.no+(offer.client?" "+offer.client:"")).replace(/[\\\/:*?"<>|]+/g,"").trim()+".pdf";
-    html2pdf().set({margin:0, filename:name, image:{type:"jpeg",quality:0.95}, html2canvas:{scale:2,backgroundColor:"#ffffff"}, jsPDF:{unit:"mm",format:"a4",orientation:"portrait"}})
+    html2pdf().set({margin:0, filename:name, image:{type:"jpeg",quality:0.95}, html2canvas:{scale:2,backgroundColor:"#ffffff",scrollX:0,scrollY:0}, jsPDF:{unit:"mm",format:"a4",orientation:"portrait"}})
       .from(host.firstChild).outputPdf("blob").then(function(blob){
         bumpOfferNo();
         var file=new File([blob],name,{type:"application/pdf"});
